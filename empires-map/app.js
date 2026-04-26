@@ -170,7 +170,8 @@ function updateAllPaths() {
 
 function clearPeerHighlight() {
   if (!gLand) return;
-  gLand.selectAll("path.land").classed("land--peers", false);
+  gLand.selectAll("path.land").classed("land--peers", false).classed("land--muted", false);
+  if (gRoot) gRoot.classed("globe-root--land-focus", false);
 }
 
 function setPeerHighlight(key) {
@@ -180,7 +181,11 @@ function setPeerHighlight(key) {
     clearPeerHighlight();
     return;
   }
-  gLand.selectAll("path.land").classed("land--peers", (d) => powerKey(d) === k);
+  gLand.selectAll("path.land").each(function (d) {
+    const on = powerKey(d) === k;
+    d3.select(this).classed("land--peers", on).classed("land--muted", !on);
+  });
+  if (gRoot) gRoot.classed("globe-root--land-focus", true);
 }
 
 function styleLandPath(selection) {

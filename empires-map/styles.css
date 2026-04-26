@@ -170,12 +170,23 @@ body {
 
 .sphere-fill {
   fill: url(#ocean-gradient);
+  transition: opacity 0.18s ease;
 }
 
 .sphere-outline {
   fill: none;
   stroke: rgba(255, 255, 255, 0.22);
   stroke-width: 1.5;
+  transition: stroke-opacity 0.18s ease;
+}
+
+/* While a power is hovered: soften ocean so land focus reads clearly */
+.globe-root.globe-root--land-focus .sphere-fill {
+  opacity: 0.48;
+}
+
+.globe-root.globe-root--land-focus .sphere-outline {
+  stroke-opacity: 0.35;
 }
 
 .land {
@@ -184,10 +195,19 @@ body {
   vector-effect: non-scaling-stroke;
   /* Reduces bogus “whole screen” fills when clipped paths self-intersect */
   fill-rule: evenodd;
+  transition: opacity 0.16s ease, filter 0.16s ease, stroke-opacity 0.16s ease, stroke-width 0.16s ease;
+}
+
+/* Other powers while one power (e.g. Spain + colonies) is hovered */
+.land.land--muted {
+  opacity: 0.3;
+  filter: grayscale(0.4) brightness(0.78);
 }
 
 /* All polygons sharing the same power key (e.g. every Portugal colony) */
 .land.land--peers {
-  stroke: rgba(255, 255, 255, 0.82);
-  stroke-width: 0.85;
+  opacity: 1;
+  filter: none;
+  stroke: rgba(255, 255, 255, 0.88);
+  stroke-width: 0.9;
 }
