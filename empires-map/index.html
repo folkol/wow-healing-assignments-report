@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Historical boundaries — globe</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <main id="map-wrap" aria-label="Historical globe map">
+        <svg id="globe-svg" tabindex="0"></svg>
+        <div id="status" class="status" hidden></div>
+        <div class="map-wheel-hint" aria-hidden="true">
+          Scroll map: up = newer, down = older · Ctrl + scroll (pinch) or + / - : zoom
+        </div>
+      </main>
+      <footer id="timeline" class="timeline">
+        <div class="timeline-row">
+          <button type="button" id="btn-prev" aria-label="Previous snapshot">◀</button>
+          <input
+            id="year-slider"
+            type="range"
+            min="0"
+            max="0"
+            value="0"
+            aria-valuetext=""
+          />
+          <button type="button" id="btn-next" aria-label="Next snapshot">▶</button>
+          <button type="button" id="btn-play" aria-pressed="false" aria-label="Play timeline">Play</button>
+        </div>
+        <div class="timeline-meta">
+          <span id="year-label" class="year-label"></span>
+          <span id="file-hint" class="file-hint"></span>
+        </div>
+        <p class="attribution">
+          Boundaries from
+          <a href="https://github.com/aourednik/historical-basemaps" target="_blank" rel="noopener"
+            >aourednik/historical-basemaps</a>
+          (CC-BY). Work in progress — treat as approximate, especially in deep antiquity.
+        </p>
+      </footer>
+    </div>
+    <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
