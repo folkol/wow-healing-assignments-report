@@ -94,3 +94,20 @@ If you prefer not to keep a compiled `dist/`, you can run via `tsx` instead:
 - Defensive availability is a heuristic. It does not account for charges, haste, or talent-modified cooldowns, and it only checks the spells listed in `src/data/defensive-spells.json` — extend that file for better coverage.
 - Positional data (`x`/`y`) is only present when Blizzard logged it for an event; the tool returns `null` when absent.
 - This server uses OAuth client-credentials, which only sees **public** reports. Private reports require an authorization-code flow that is not implemented here.
+
+## Bonus: print-ready playing cards (A4 duplex)
+
+There’s a standalone print page here:
+
+- `dist/print-playing-cards/spades-a4-duplex.html`
+
+It prints **two A4 pages**:
+
+- **Page 1**: as many spade faces as fit on A4 (**58 × 88 mm**, sized to fit inside 60 × 90 mm business-card laminating pouches → **9 cards**: A♠ through 9♠)
+- **Page 2**: backs in the exact same positions, using a randomly chosen “playing-card-like” back design
+
+Printing tips (for alignment):
+
+- **Disable “fit to page” / scaling** in the print dialog (must be **100%**).
+- **Duplex**: start with “flip on long edge”. If the back ends up horizontally offset, toggle **Mirror backs** in the toolbar and re-print.
+- **Calibration**: do a quick test on plain paper, then hold the sheet up to a light source to verify front/back registration before using thick stock.

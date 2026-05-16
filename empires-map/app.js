@@ -2,23 +2,27 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 
 const GEOJSON_BASE =
   "https://raw.githubusercontent.com/aourednik/historical-basemaps/master/geojson/";
+const CSHAPES_URL = "https://icr.ethz.ch/data/cshapes/CShapes-2.0.geojson";
+const COW_ENTITIES_URL = new URL("data/cow/tc_entities_tabula.csv", document.baseURI).href;
 
 const state = {
   snapshots: [],
   currentIdx: 0,
   cache: new Map(),
+  cshapes: null,
+  cowEntityRows: null,
   playTimer: null,
-  /** Accumulates wheel delta for “one notch” time steps (map or timeline) */
   timeWheelAccum: 0,
   width: 600,
   height: 400,
+  /** SVG fill-rule for land paths. nonzero avoids parity holes in historical multipolygons. */
+  landFillRule: "nonzero",
+  currentYear: null,
 };
 
 const TIME_WHEEL_THRESH = 90;
 
-/** @type {d3.GeoProjection} */
 let projection;
-/** @type {d3.GeoPath<any, d3.GeoPermissibleObjects>} */
 let path;
 let svg;
 let gRoot;
@@ -37,7 +41,6 @@ function hashString(s) {
   return h;
 }
 
-/** Stable hue 0–360 from power key (same string → same colour on every snapshot). */
 function baseHueForKey(k) {
   return ((hashString(String(k).toLowerCase()) % 360) + 360) % 360;
 }
@@ -53,7 +56,6 @@ function eachRing(geometry, visit) {
   }
 }
 
-/** Axis-aligned bounds in lon/lat (no dateline wrap handling). */
 function geomBounds(geometry) {
   let minLon = Infinity;
   let maxLon = -Infinity;
@@ -80,28 +82,81 @@ function fillForKey(key) {
   return `hsla(${hue}, 50%, 42%, 0.9)`;
 }
 
-/** Region label (colony / province / culture name). */
-function regionName(d) {
-  const p = d.properties ?? {};
-  return String(p.NAME ?? p.name ?? "").trim();
+function usingCShapesYear(year) {
+  return year >= 1886 && year <= 2019;
 }
 
-/** Sovereign or colonial power when present — used for color so all colonies of a power share one hue. */
+function regionName(d) {
+  const p = d.properties ?? {};
+  return String(p.NAME ?? p.name ?? p.cntry_name ?? "").trim();
+}
+
+function parseOwnerCode(status) {
+  const s = String(status ?? "").trim();
+  if (!s) return NaN;
+  const m = s.match(/(\d+)\s*$/);
+  return m ? Number(m[1]) : NaN;
+}
+
+function labelFromStatus(status) {
+  const s = String(status ?? "").trim().toLowerCase();
+  if (s.includes("occupied by")) return "Occupied by";
+  if (s.includes("leased to")) return "Leased to";
+  if (s.includes("claimed by")) return "Claimed by";
+  if (s.includes("colony of")) return "Colony of";
+  if (s.includes("possession of")) return "Possession of";
+  if (s.includes("protectorate")) return "Protectorate of";
+  if (s.includes("part of")) return "Part of";
+  return "Controlled by";
+}
+
+function normalizeCsvRowKeys(row) {
+  const out = {};
+  for (const [k, v] of Object.entries(row)) out[String(k).replace(/\r/g, "").trim()] = v;
+  return out;
+}
+
+async function loadCowEntities() {
+  if (state.cowEntityRows) return state.cowEntityRows;
+  const text = await (await fetch(COW_ENTITIES_URL, { cache: "default" })).text();
+  const rows = d3
+    .csvParse(text)
+    .map(normalizeCsvRowKeys)
+    .map((row) => {
+      const code = Number(row["Entity Number"]);
+      const begin = Number(row["Begin Year"]);
+      const end = Number(row["End Year"]);
+      const name = String(row["Name"] ?? "").trim();
+      const status = String(row["Ending Political Status"] ?? "").trim();
+      const ownerCode = parseOwnerCode(status);
+      return { code, begin, end, name, status, ownerCode, relLabel: labelFromStatus(status) };
+    })
+    .filter((row) => Number.isFinite(row.code) && Number.isFinite(row.begin) && Number.isFinite(row.end));
+  state.cowEntityRows = rows;
+  return rows;
+}
+
+function ownerFromCowEntities(code, year) {
+  if (!Number.isFinite(code) || !Number.isFinite(year) || !state.cowEntityRows) return null;
+  const row = state.cowEntityRows.find((r) => r.code === code && r.begin <= year && year <= r.end);
+  if (!row || !Number.isFinite(row.ownerCode) || row.ownerCode === code) return null;
+  const owner = state.cowEntityRows.find((r) => r.code === row.ownerCode && r.begin <= year && year <= r.end);
+  const ownerName = owner?.name ?? "";
+  return { ownerCode: row.ownerCode, ownerName, relLabel: row.relLabel };
+}
+
 function powerKey(d) {
   const p = d.properties ?? {};
   const sub = String(p.SUBJECTO ?? p.subjecto ?? "").trim();
+  const year = Number(state.currentYear);
+  const code = Number(p.gwcode);
+  const owner = ownerFromCowEntities(code, year);
+  const cshapesOwner = String(owner?.ownerName ?? "").trim();
+  const cshapesName = String(p.cntry_name ?? "").trim();
   const name = regionName(d);
-  return sub || name || "";
+  return sub || cshapesOwner || cshapesName || name || "";
 }
 
-/**
- * Many snapshots include unnamed “backdrop” strips (full-lon ocean masks, polar
- * bands, etc.). They are gray (“Unknown”) and interact badly with orthographic
- * clipping — huge fills that flicker as you rotate. Same pattern recurs across
- * years, not only one map file.
- *
- * d3.geoArea is steradians on the unit sphere (full Earth ≈ 4π ≈ 12.57).
- */
 function isGlobalBackdropFeature(feature) {
   if (!feature.geometry) return true;
   let area;
@@ -111,16 +166,17 @@ function isGlobalBackdropFeature(feature) {
     return true;
   }
   if (!Number.isFinite(area)) return true;
-  /* Single polygon claiming ~80%+ of the planet — merge / topology garbage */
+  // Named polities are never the synthetic global backdrop. CShapes (and some
+  // other sources) can yield very large d3.geoArea values for valid polygons
+  // (e.g. non-RFC7946 ring winding), so we must not drop them here.
+  const pk = powerKey(feature);
+  if (pk) return false;
+
   if (area > 10) return true;
 
   const b = geomBounds(feature.geometry);
   const lonSpan = b ? b.maxLon - b.minLon : 0;
   const latSpan = b ? b.maxLat - b.minLat : 0;
-  const pk = powerKey(feature);
-  if (pk) return false;
-
-  /* Unnamed only from here — huge anonymous regions are almost always masks */
   if (area > 2) return true;
   if (lonSpan > 300) return true;
   if (lonSpan > 200 && latSpan > 16) return true;
@@ -130,11 +186,54 @@ function isGlobalBackdropFeature(feature) {
 
 function borderStyle(d) {
   const p = d.properties ?? {};
+  if (p.gwsyear != null || p.gweyear != null) {
+    return { dash: null, strokeOp: 0.85, fillOp: 0.92 };
+  }
   const raw = p.BORDERPRECISION ?? p.borderprecision;
   const n = typeof raw === "number" ? raw : parseInt(String(raw), 10);
   if (n === 1) return { dash: "5 4", strokeOp: 0.45, fillOp: 0.72 };
   if (n === 2) return { dash: null, strokeOp: 0.65, fillOp: 0.85 };
   return { dash: null, strokeOp: 0.85, fillOp: 0.92 };
+}
+
+function reverseGeometryRings(geometry) {
+  if (!geometry) return geometry;
+  if (geometry.type === "Polygon") {
+    return { ...geometry, coordinates: geometry.coordinates.map((ring) => [...ring].reverse()) };
+  }
+  if (geometry.type === "MultiPolygon") {
+    return {
+      ...geometry,
+      coordinates: geometry.coordinates.map((poly) => poly.map((ring) => [...ring].reverse())),
+    };
+  }
+  return geometry;
+}
+
+function normalizeFeatureGeometry(feature) {
+  const geometry = feature?.geometry;
+  if (!geometry) return feature;
+  if (geometry.type !== "Polygon" && geometry.type !== "MultiPolygon") return feature;
+
+  let areaOriginal = NaN;
+  try {
+    areaOriginal = d3.geoArea(feature);
+  } catch {
+    return feature;
+  }
+  if (!Number.isFinite(areaOriginal)) return feature;
+
+  const reversed = reverseGeometryRings(geometry);
+  let areaReversed = NaN;
+  try {
+    areaReversed = d3.geoArea({ ...feature, geometry: reversed });
+  } catch {
+    return feature;
+  }
+  if (Number.isFinite(areaReversed) && areaReversed < areaOriginal) {
+    return { ...feature, geometry: reversed };
+  }
+  return feature;
 }
 
 function measure() {
@@ -147,10 +246,7 @@ function measure() {
 function configureProjection() {
   const { width, height } = state;
   const r = Math.min(width, height) * 0.42;
-  projection
-    .scale(r)
-    .translate([width / 2, height / 2])
-    .clipAngle(90);
+  projection.scale(r).translate([width / 2, height / 2]).clipAngle(90);
   path.projection(projection);
 }
 
@@ -191,6 +287,7 @@ function setPeerHighlight(key) {
 function styleLandPath(selection) {
   return selection
     .attr("class", "land")
+    .attr("fill-rule", state.landFillRule)
     .attr("vector-effect", "non-scaling-stroke")
     .each(function (d) {
       const key = powerKey(d);
@@ -218,9 +315,10 @@ function tooltipTitle(d) {
   const props = d.properties ?? {};
   const rawName = regionName(d);
   const sub = String(props.SUBJECTO ?? props.subjecto ?? "").trim();
-  if (sub && rawName) {
-    return sub !== rawName ? `${sub} (${rawName})` : rawName;
-  }
+  const owner = ownerFromCowEntities(Number(props.gwcode), Number(state.currentYear));
+  const ownerName = String(owner?.ownerName ?? "").trim();
+  if (!sub && ownerName && rawName && ownerName !== rawName) return `${ownerName} (${rawName})`;
+  if (sub && rawName) return sub !== rawName ? `${sub} (${rawName})` : rawName;
   if (sub) return sub;
   if (rawName) return rawName;
   return "Unknown";
@@ -275,11 +373,7 @@ function positionTooltip(x, y) {
 }
 
 function escapeHtml(s) {
-  return s
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+  return s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 }
 
 async function fetchGeojson(filename) {
@@ -289,9 +383,35 @@ async function fetchGeojson(filename) {
   return res.json();
 }
 
+async function loadCShapes() {
+  if (state.cshapes) return state.cshapes;
+  const res = await fetch(CSHAPES_URL, { cache: "default" });
+  if (!res.ok) throw new Error(`CShapes load failed: ${res.status}`);
+  const raw = await res.json();
+  const features = (raw.features ?? []).map((feature) => normalizeFeatureGeometry(feature));
+  state.cshapes = { ...raw, features };
+  return state.cshapes;
+}
+
+function cshapeActiveInYear(feature, year) {
+  const p = feature.properties ?? {};
+  const start = Number(p.gwsyear);
+  const end = Number(p.gweyear);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return false;
+  return start <= year && year < end;
+}
+
+function cshapesSnapshotForYear(year) {
+  const all = state.cshapes?.features ?? [];
+  const features = all.filter((f) => cshapeActiveInYear(f, year));
+  return { type: "FeatureCollection", features };
+}
+
 function prefetch(idx) {
   if (idx < 0 || idx >= state.snapshots.length) return;
-  const { filename } = state.snapshots[idx];
+  const snap = state.snapshots[idx];
+  if (!snap || usingCShapesYear(snap.year)) return;
+  const { filename } = snap;
   if (state.cache.has(filename)) return;
   fetchGeojson(filename)
     .then((fc) => state.cache.set(filename, fc))
@@ -302,18 +422,32 @@ async function loadSnapshot(idx) {
   const snap = state.snapshots[idx];
   if (!snap) return;
   const { filename, year } = snap;
-  setStatus(`Loading ${filename}…`);
-  let fc = state.cache.get(filename);
-  if (!fc) {
-    fc = await fetchGeojson(filename);
-    state.cache.set(filename, fc);
+  const useCShapes = usingCShapesYear(year);
+  setStatus(useCShapes ? `Loading CShapes ${year}...` : `Loading ${filename}...`);
+  let fc;
+  if (useCShapes) {
+    await loadCShapes();
+    try {
+      await loadCowEntities();
+    } catch {
+      state.cowEntityRows = [];
+    }
+    fc = cshapesSnapshotForYear(year);
+  } else {
+    fc = state.cache.get(filename);
+    if (!fc) {
+      fc = await fetchGeojson(filename);
+      state.cache.set(filename, fc);
+    }
   }
   state.currentIdx = idx;
+  state.currentYear = year;
+  state.landFillRule = "nonzero";
   renderLand(fc);
   updateAllPaths();
   prefetch(idx - 1);
   prefetch(idx + 1);
-  syncUi(year, filename);
+  syncUi(year, useCShapes ? `CShapes-2.0 (${year})` : filename);
   hideStatus();
 }
 
@@ -348,11 +482,9 @@ function goTo(idx) {
   });
 }
 
-/** Plain wheel: step through snapshots (map or timeline). */
 function stepTimeFromWheel(deltaY) {
   state.timeWheelAccum += deltaY;
   if (Math.abs(state.timeWheelAccum) < TIME_WHEEL_THRESH) return;
-  /* Scroll up (negative deltaY) → newer snapshot; scroll down → older */
   const dir = state.timeWheelAccum > 0 ? -1 : 1;
   state.timeWheelAccum = 0;
   goTo(state.currentIdx + dir);
@@ -373,12 +505,7 @@ function setupSvg() {
   path = d3.geoPath(projection);
 
   const defs = svg.append("defs");
-  const grad = defs
-    .append("radialGradient")
-    .attr("id", "ocean-gradient")
-    .attr("cx", "32%")
-    .attr("cy", "30%")
-    .attr("r", "78%");
+  const grad = defs.append("radialGradient").attr("id", "ocean-gradient").attr("cx", "32%").attr("cy", "30%").attr("r", "78%");
   grad.append("stop").attr("offset", "0%").attr("stop-color", "#2b5a8c");
   grad.append("stop").attr("offset", "55%").attr("stop-color", "#153a5c");
   grad.append("stop").attr("offset", "100%").attr("stop-color", "#0a1628");
@@ -445,13 +572,8 @@ async function init() {
   slider.addEventListener("input", () => {
     goTo(Number.parseInt(slider.value, 10));
   });
-
-  document.getElementById("btn-prev").addEventListener("click", () => {
-    goTo(state.currentIdx - 1);
-  });
-  document.getElementById("btn-next").addEventListener("click", () => {
-    goTo(state.currentIdx + 1);
-  });
+  document.getElementById("btn-prev").addEventListener("click", () => goTo(state.currentIdx - 1));
+  document.getElementById("btn-next").addEventListener("click", () => goTo(state.currentIdx + 1));
 
   const playBtn = document.getElementById("btn-play");
   playBtn.addEventListener("click", () => {

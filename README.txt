@@ -44,3 +44,20 @@ T+0.0: normal rotation
 
 
 https://www.wowhead.com/guide/classes/shaman/elemental/bis-gear
+
+
+
+
+# Case studies
+
+87-parse
+
+https://www.warcraftlogs.com/reports/JHkz2pqX37WvPyM4?fight=10&type=damage-done&modal=compare&comparesearchplayer=123&comparesearch=2.10.2.28
+
+#27 in  this bracket
+compared to #1:
+- sendkneepics have higher burst
+- MPlight have more damage to the boss
+https://www.warcraftlogs.com/reports/compare/JHkz2pqX37WvPyM4/8fxdWvanCXjDZzTp?fight=10%2C12&type=damage-done&source=123%2CSendkneepics&target=278%2C435
+- störst diff här: ~1M chain lightning vs ~100k earth quake
+https://www.warcraftlogs.com/reports/compare/JHkz2pqX37WvPyM4/8fxdWvanCXjDZzTp?fight=10%2C12&type=damage-done&source=123%2CSendkneepics&start=3560296%2C2035244&end=3571829%2C2046777

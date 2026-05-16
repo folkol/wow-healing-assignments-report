@@ -21,10 +21,10 @@ Then open `http://localhost:8080`.
 
 ## Data
 
-- Repository: [aourednik/historical-basemaps](https://github.com/aourednik/historical-basemaps)
-- License: **CC-BY** — keep the attribution visible when you share or adapt the visualization.
+- Pre-1886 repository: [aourednik/historical-basemaps](https://github.com/aourednik/historical-basemaps) (CC-BY)
+- 1886+ repository: [CShapes 2.0](https://icr.ethz.ch/data/cshapes/) (CC BY-NC-SA 4.0)
 
-The curator notes that the maps are **work in progress** and not suitable as sole evidence for academic claims without cross-checking other sources.
+The historical-basemaps curator notes that the maps are **work in progress** and not suitable as sole evidence for academic claims without cross-checking other sources.
 
 ## Files
 

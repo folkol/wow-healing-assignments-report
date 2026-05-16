@@ -193,8 +193,8 @@ body {
   stroke: rgba(10, 14, 20, 0.55);
   stroke-width: 0.35;
   vector-effect: non-scaling-stroke;
-  /* Reduces bogus “whole screen” fills when clipped paths self-intersect */
-  fill-rule: evenodd;
+  /* Default fallback; app.js sets this explicitly on paths. */
+  fill-rule: nonzero;
   transition: opacity 0.16s ease, filter 0.16s ease, stroke-opacity 0.16s ease, stroke-width 0.16s ease;
 }
 
