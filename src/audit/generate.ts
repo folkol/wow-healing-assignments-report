@@ -46,6 +46,30 @@ export interface HealthSample {
   dead: number;
   activeDebuffs: string;
   debuffChanges: string;
+  deathsNear: string;
+}
+
+export interface PullDeath {
+  attempt: number;
+  fightID: number;
+  timeSec: number;
+  actorID: number;
+  killingAbilityID?: number;
+}
+
+export interface DeathTimeBucket {
+  startSec: number;
+  endSec: number;
+  count: number;
+  playerCounts: Array<{ actorID: number; count: number }>;
+}
+
+export interface PlayerDeathSummary {
+  actorID: number;
+  deathCount: number;
+  pullCount: number;
+  medianTimeSec: number;
+  peakBucketLabel: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -172,6 +196,15 @@ function numberField(event: WclEvent, key: string): number | undefined {
 function stringField(event: WclEvent, key: string): string | undefined {
   const value = event[key];
   return typeof value === "string" ? value : undefined;
+}
+
+function fmtTime(sec?: number): string {
+  if (sec == null || !Number.isFinite(sec)) return "";
+  const sign = sec < 0 ? "-" : "";
+  const abs = Math.abs(sec);
+  const m = Math.floor(abs / 60);
+  const s = Math.round(abs - m * 60);
+  return `${sign}${m}:${s.toString().padStart(2, "0")}`;
 }
 
 export function scoreAssignments(params: {
@@ -304,6 +337,93 @@ export function annotateDeaths(
   }
 }
 
+export function buildPullDeaths(params: {
+  deathEvents: WclEvent[];
+  fights: Array<{ id: number; startTime: number; attempt: number }>;
+  playerIDs: Set<number>;
+}): PullDeath[] {
+  const fightByID = new Map(params.fights.map((f) => [f.id, f]));
+  const out: PullDeath[] = [];
+  for (const event of params.deathEvents) {
+    if (event.type !== "death") continue;
+    const fight = numberField(event, "fight");
+    const targetID = event.targetID;
+    if (!fight || !targetID || !params.playerIDs.has(targetID)) continue;
+    const fightMeta = fightByID.get(fight);
+    if (!fightMeta) continue;
+    const killingAbilityID =
+      numberField(event, "killingAbilityGameID") ?? numberField(event, "abilityGameID");
+    out.push({
+      attempt: fightMeta.attempt,
+      fightID: fight,
+      timeSec: (event.timestamp - fightMeta.startTime) / 1000,
+      actorID: targetID,
+      killingAbilityID,
+    });
+  }
+  return out.sort((a, b) => a.attempt - b.attempt || a.timeSec - b.timeSec);
+}
+
+const DEATH_BUCKET_SEC = 5;
+
+export function buildDeathTimeBuckets(deaths: PullDeath[], bucketSec = DEATH_BUCKET_SEC): DeathTimeBucket[] {
+  if (deaths.length === 0) return [];
+  const maxTime = Math.max(...deaths.map((d) => d.timeSec));
+  const buckets: DeathTimeBucket[] = [];
+  for (let start = 0; start <= maxTime; start += bucketSec) {
+    const end = start + bucketSec;
+    const inBucket = deaths.filter((d) => d.timeSec >= start && d.timeSec < end);
+    if (inBucket.length === 0) continue;
+    const counts = new Map<number, number>();
+    for (const d of inBucket) counts.set(d.actorID, (counts.get(d.actorID) ?? 0) + 1);
+    buckets.push({
+      startSec: start,
+      endSec: end,
+      count: inBucket.length,
+      playerCounts: [...counts.entries()]
+        .map(([actorID, count]) => ({ actorID, count }))
+        .sort((a, b) => b.count - a.count),
+    });
+  }
+  return buckets;
+}
+
+export function buildPlayerDeathSummaries(
+  deaths: PullDeath[],
+  buckets: DeathTimeBucket[],
+): PlayerDeathSummary[] {
+  const byPlayer = new Map<number, PullDeath[]>();
+  for (const death of deaths) {
+    const list = byPlayer.get(death.actorID) ?? [];
+    list.push(death);
+    byPlayer.set(death.actorID, list);
+  }
+  const bucketLabel = (b: DeathTimeBucket) => `${fmtTime(b.startSec)}–${fmtTime(b.endSec)}`;
+  const peakByPlayer = new Map<number, DeathTimeBucket>();
+  for (const bucket of buckets) {
+    for (const { actorID, count } of bucket.playerCounts) {
+      const current = peakByPlayer.get(actorID);
+      const currentCount =
+        current?.playerCounts.find((p) => p.actorID === actorID)?.count ?? 0;
+      if (!current || count > currentCount) peakByPlayer.set(actorID, bucket);
+    }
+  }
+  return [...byPlayer.entries()]
+    .map(([actorID, list]) => {
+      const times = list.map((d) => d.timeSec).sort((a, b) => a - b);
+      const pulls = new Set(list.map((d) => d.attempt));
+      const peak = peakByPlayer.get(actorID);
+      return {
+        actorID,
+        deathCount: list.length,
+        pullCount: pulls.size,
+        medianTimeSec: times[Math.floor(times.length / 2)],
+        peakBucketLabel: peak ? bucketLabel(peak) : "",
+      };
+    })
+    .sort((a, b) => b.deathCount - a.deathCount || a.medianTimeSec - b.medianTimeSec);
+}
+
 // ---------------------------------------------------------------------------
 // Health samples
 // ---------------------------------------------------------------------------
@@ -315,6 +435,7 @@ export function buildHealthSamples(params: {
   deathState: Map<number, DeathEvent[]>;
   playerIDs: Set<number>;
   actorNames: Map<number, string>;
+  actorsByID: Map<number, Actor>;
   abilityNames: Map<number, string>;
   sampleOffsets: number[];
 }): Map<string, HealthSample> {
@@ -411,6 +532,12 @@ export function buildHealthSamples(params: {
         request.timestamp + 2500,
         params.abilityNames,
       );
+      const deathsNear = deathsNearSummary(
+        deathEvents,
+        request.timestamp - 2500,
+        request.timestamp + 2500,
+        params.actorsByID,
+      );
       samples.set(`${request.assignmentIndex}:${request.offset}`, {
         avgHp,
         lowest,
@@ -418,6 +545,7 @@ export function buildHealthSamples(params: {
         dead: [...deadState].filter((id) => params.playerIDs.has(id)).length,
         activeDebuffs,
         debuffChanges,
+        deathsNear,
       });
     }
   }
@@ -480,18 +608,24 @@ function debuffChangeSummary(
     .join("; ");
 }
 
+function deathsNearSummary(
+  events: DeathEvent[],
+  start: number,
+  end: number,
+  actorsByID: Map<number, Actor>,
+): string {
+  const names: string[] = [];
+  for (const event of events) {
+    if (event.kind !== "death") continue;
+    if (event.timestamp < start || event.timestamp > end) continue;
+    names.push(actorsByID.get(event.actorID)?.name ?? String(event.actorID));
+  }
+  return names.join(", ");
+}
+
 // ---------------------------------------------------------------------------
 // HTML rendering
 // ---------------------------------------------------------------------------
-
-function fmtTime(sec?: number): string {
-  if (sec == null || !Number.isFinite(sec)) return "";
-  const sign = sec < 0 ? "-" : "";
-  const abs = Math.abs(sec);
-  const m = Math.floor(abs / 60);
-  const s = Math.round(abs - m * 60);
-  return `${sign}${m}:${s.toString().padStart(2, "0")}`;
-}
 
 function htmlEscape(value: unknown): string {
   return String(value)
@@ -505,6 +639,94 @@ function statusClass(status: ScoredAssignment["status"]): string {
   if (status === "hit") return "ok";
   if (status === "miss") return "bad";
   return "warn";
+}
+
+function formatPlayerList(
+  entries: Array<{ actorID: number; count: number }>,
+  actorsByID: Map<number, Actor>,
+  limit = 6,
+): string {
+  return entries
+    .slice(0, limit)
+    .map(({ actorID, count }) => {
+      const name = actorsByID.get(actorID)?.name ?? actorID;
+      return count > 1 ? `${name} x${count}` : name;
+    })
+    .join(", ");
+}
+
+function renderDeathBucketRows(
+  buckets: DeathTimeBucket[],
+  actorsByID: Map<number, Actor>,
+  pullCount: number,
+): string {
+  const ranked = [...buckets].sort((a, b) => b.count - a.count || a.startSec - b.startSec);
+  return ranked
+    .map((bucket) => {
+      const intensity =
+        bucket.count >= pullCount * 2 ? "bad" : bucket.count >= pullCount ? "warn" : "";
+      return `<tr class="${intensity}">
+  <td>${fmtTime(bucket.startSec)}–${fmtTime(bucket.endSec)}</td>
+  <td>${bucket.count}</td>
+  <td>${htmlEscape(formatPlayerList(bucket.playerCounts, actorsByID))}</td>
+</tr>`;
+    })
+    .join("\n");
+}
+
+function renderPlayerDeathSummaryRows(
+  summaries: PlayerDeathSummary[],
+  actorsByID: Map<number, Actor>,
+): string {
+  return summaries
+    .map(
+      (s) => `<tr>
+  <td>${htmlEscape(actorsByID.get(s.actorID)?.name ?? s.actorID)}</td>
+  <td>${s.deathCount}</td>
+  <td>${s.pullCount}</td>
+  <td>${fmtTime(s.medianTimeSec)}</td>
+  <td>${htmlEscape(s.peakBucketLabel)}</td>
+</tr>`,
+    )
+    .join("\n");
+}
+
+function renderPerPullDeathTimeline(
+  deaths: PullDeath[],
+  actorsByID: Map<number, Actor>,
+  abilityNames: Map<number, string>,
+): string {
+  const byPull = new Map<number, PullDeath[]>();
+  for (const death of deaths) {
+    const list = byPull.get(death.attempt) ?? [];
+    list.push(death);
+    byPull.set(death.attempt, list);
+  }
+  return [...byPull.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([attempt, pullDeaths]) => {
+      const rows = pullDeaths
+        .map((death) => {
+          const player = actorsByID.get(death.actorID)?.name ?? death.actorID;
+          const ability = death.killingAbilityID
+            ? abilityNames.get(death.killingAbilityID) ?? death.killingAbilityID
+            : "";
+          return `<tr class="death">
+  <td>${fmtTime(death.timeSec)}</td>
+  <td>${htmlEscape(player)}</td>
+  <td>${htmlEscape(ability)}</td>
+</tr>`;
+        })
+        .join("\n");
+      return `<details class="pull-deaths">
+  <summary>Pull ${attempt} — ${pullDeaths.length} death${pullDeaths.length === 1 ? "" : "s"}</summary>
+  <table class="inner">
+    <thead><tr><th>Time</th><th>Player</th><th>Killing Blow</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+</details>`;
+    })
+    .join("\n");
 }
 
 function renderSampleTable(
@@ -526,10 +748,10 @@ function renderSampleTable(
         sample.dead
       }</td><td>${htmlEscape(sample.activeDebuffs || "none")}</td><td>${htmlEscape(
         sample.debuffChanges || "none",
-      )}</td></tr>`;
+      )}</td><td>${htmlEscape(sample.deathsNear || "none")}</td></tr>`;
     })
     .join("");
-  return `<table class="inner"><thead><tr><th>Rel</th><th>Avg HP</th><th>Lowest HP</th><th>&lt;50%</th><th>Dead</th><th>Active Debuffs</th><th>Debuff Changes (+/-2.5s)</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<table class="inner"><thead><tr><th>Rel</th><th>Avg HP</th><th>Lowest HP</th><th>&lt;50%</th><th>Dead</th><th>Active Debuffs</th><th>Debuff Changes (+/-2.5s)</th><th>Deaths (+/-2.5s)</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 function renderAssignmentSummaryRows(
@@ -608,6 +830,10 @@ export function renderHtml(params: {
   actorsByID: Map<number, Actor>;
   abilityNames: Map<number, string>;
   sampleOffsets: number[];
+  pullDeaths: PullDeath[];
+  deathBuckets: DeathTimeBucket[];
+  playerDeathSummaries: PlayerDeathSummary[];
+  pullCount: number;
 }): string {
   const counts = new Map<ScoredAssignment["status"], number>();
   for (const assignment of params.assignments)
@@ -615,6 +841,21 @@ export function renderHtml(params: {
 
   const summaryRows = renderAssignmentSummaryRows(
     params.assignments,
+    params.actorsByID,
+    params.abilityNames,
+  );
+
+  const deathBucketRows = renderDeathBucketRows(
+    params.deathBuckets,
+    params.actorsByID,
+    params.pullCount,
+  );
+  const playerDeathRows = renderPlayerDeathSummaryRows(
+    params.playerDeathSummaries,
+    params.actorsByID,
+  );
+  const perPullDeathTimeline = renderPerPullDeathTimeline(
+    params.pullDeaths,
     params.actorsByID,
     params.abilityNames,
   );
@@ -674,8 +915,11 @@ th { position: sticky; top: 0; background: #202020; z-index: 1; text-align: left
 tr.ok { background: rgba(40,130,70,.12); }
 tr.warn { background: rgba(180,130,20,.14); }
 tr.bad { background: rgba(160,50,50,.16); }
+tr.death { background: rgba(160,50,50,.10); }
 .inner { margin: 10px 0; font-size: 12px; background: #151515; }
 .inner th { position: static; }
+.pull-deaths { margin: 10px 0; }
+.pull-deaths summary { color: #f0a0a0; }
 summary { cursor: pointer; color: #9ecbff; }
 </style>
 </head>
@@ -687,7 +931,26 @@ summary { cursor: pointer; color: #9ecbff; }
   <div class="card"><b>${counts.get("hit") ?? 0}</b>On-time casts</div>
   <div class="card"><b>${(counts.get("early") ?? 0) + (counts.get("late") ?? 0)}</b>Off-timing casts</div>
   <div class="card"><b>${counts.get("miss") ?? 0}</b>No nearby cast</div>
+  <div class="card"><b>${params.pullDeaths.length}</b>Raid deaths</div>
 </div>
+<h2>Death Summary Over the Evening</h2>
+<div class="meta">5-second windows aggregated across all pulls. Rows sorted by total deaths (most common windows first). Highlighted rows had deaths in at least half of pulls.</div>
+<table>
+<thead><tr><th>Time Window</th><th>Deaths</th><th>Players</th></tr></thead>
+<tbody>
+${deathBucketRows || '<tr><td colspan="3">No player deaths recorded.</td></tr>'}
+</tbody>
+</table>
+<h3>Per-Player Death Timing</h3>
+<table>
+<thead><tr><th>Player</th><th>Deaths</th><th>Pulls</th><th>Median Time</th><th>Peak Window</th></tr></thead>
+<tbody>
+${playerDeathRows || '<tr><td colspan="5">No player deaths recorded.</td></tr>'}
+</tbody>
+</table>
+<h2>Per-Pull Death Timeline</h2>
+<div class="meta">Exact death times per pull, including killing blow when logged.</div>
+${perPullDeathTimeline || '<div class="meta">No player deaths recorded.</div>'}
 <h2>Assignment Summary Over the Evening</h2>
 <div class="meta">One row per planned assignment. "Death non-hit" counts misses/early/late rows where the assigned player was already dead at the planned time.</div>
 <table>
@@ -825,6 +1088,17 @@ export async function generateAuditHtml(params: {
   const actorsByID = new Map(meta.actors.map((a) => [a.id, a]));
   const abilityNames = new Map(meta.abilities.map((a) => [a.gameID, a.name]));
   const playerIDs = new Set(meta.actors.map((a) => a.id));
+  const raidPlayerIDs = new Set(
+    meta.actors.filter((a) => a.type.toLowerCase() === "player").map((a) => a.id),
+  );
+
+  const pullDeaths = buildPullDeaths({
+    deathEvents: deaths,
+    fights: selectedFights,
+    playerIDs: raidPlayerIDs.size > 0 ? raidPlayerIDs : playerIDs,
+  });
+  const deathBuckets = buildDeathTimeBuckets(pullDeaths);
+  const playerDeathSummaries = buildPlayerDeathSummaries(pullDeaths, deathBuckets);
 
   const samples = buildHealthSamples({
     assignments,
@@ -833,6 +1107,7 @@ export async function generateAuditHtml(params: {
     deathState,
     playerIDs,
     actorNames: new Map(meta.actors.map((a) => [a.id, a.name])),
+    actorsByID,
     abilityNames,
     sampleOffsets: opts.sampleOffsets,
   });
@@ -845,5 +1120,9 @@ export async function generateAuditHtml(params: {
     actorsByID,
     abilityNames,
     sampleOffsets: opts.sampleOffsets,
+    pullDeaths,
+    deathBuckets,
+    playerDeathSummaries,
+    pullCount: selectedFights.length,
   });
 }
