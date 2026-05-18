@@ -1,9 +1,10 @@
 {
-  "buildCommand": "",
-  "outputDirectory": "public",
-  "functions": {
-    "api/generate.ts": {
-      "maxDuration": 300
-    }
-  }
+  "builds": [
+    { "src": "api/generate.ts", "use": "@vercel/node", "config": { "maxDuration": 300 } },
+    { "src": "public/**", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/public/$1" }
+  ]
 }
