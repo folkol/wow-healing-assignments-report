@@ -18,6 +18,16 @@ interface RequestBody {
   sampleOffsets?: number[];
 }
 
+function getBaseUrl(req: VercelRequest): string {
+  const host = req.headers["x-forwarded-host"] ?? req.headers.host;
+  if (!host || Array.isArray(host)) {
+    return "https://wow-healing-assignments-report.vercel.app";
+  }
+  const protoHeader = req.headers["x-forwarded-proto"];
+  const proto = (Array.isArray(protoHeader) ? protoHeader[0] : protoHeader) ?? "https";
+  return `${proto}://${host}`;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
@@ -87,13 +97,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     });
 
     const filename = `cooldown-audit-${reportCode}.html`;
-    const { url } = await put(filename, html, {
+    const blob = await put(filename, html, {
       access: "public",
       addRandomSuffix: true,
       contentType: "text/html; charset=utf-8",
     });
 
-    res.status(200).json({ url });
+    // Blob URLs force HTML downloads; serve via /api/view with inline headers.
+    const viewUrl = `${getBaseUrl(req)}/api/view?pathname=${encodeURIComponent(blob.pathname)}`;
+    res.status(200).json({ url: viewUrl });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("Audit generation failed:", message);
