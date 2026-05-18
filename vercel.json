@@ -1,6 +1,7 @@
 {
-  "builds": [
-    { "src": "api/generate.ts", "use": "@vercel/node", "config": { "maxDuration": 300 } },
-    { "src": "public/**", "use": "@vercel/static" }
-  ]
+  "functions": {
+    "api/generate.ts": {
+      "maxDuration": 300
+    }
+  }
 }
