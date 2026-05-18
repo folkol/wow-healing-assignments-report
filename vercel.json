@@ -1,4 +1,6 @@
 {
+  "buildCommand": "",
+  "outputDirectory": "public",
   "functions": {
     "api/generate.ts": {
       "maxDuration": 300
