@@ -611,49 +611,68 @@ function statusClass(status: ScoredAssignment["status"]): string {
   return "warn";
 }
 
-function renderDeathHistogram(buckets: DeathTimeBucket[], totalDeaths: number): string {
-  if (buckets.length === 0 || totalDeaths === 0) {
-    return `<div class="death-histogram widget"><div class="meta">No player deaths recorded.</div></div>`;
-  }
-  const maxCount = Math.max(...buckets.map((b) => b.count), 1);
+function renderAssignmentSummaryTimeline(params: {
+  assignments: ScoredAssignment[];
+  deathHistogram: DeathTimeBucket[];
+  totalDeaths: number;
+  actorsByID: Map<number, Actor>;
+  abilityNames: Map<number, string>;
+}): string {
+  if (params.deathHistogram.length === 0) return "";
+
+  const maxTimeSec = params.deathHistogram.at(-1)?.endSec ?? 1;
+  const maxCount = Math.max(...params.deathHistogram.map((b) => b.count), 1);
   const peakThreshold = Math.max(2, Math.ceil(maxCount * 0.45));
-  const bars = buckets
+
+  const deathBars = params.deathHistogram
     .map((bucket) => {
       const isPeak = bucket.count >= peakThreshold;
       const heightPct = bucket.count === 0 ? 0 : Math.max(6, (bucket.count / maxCount) * 100);
       const tip = `${fmtTime(bucket.startSec)}–${fmtTime(bucket.endSec)}: ${bucket.count} death${
         bucket.count === 1 ? "" : "s"
-      }${isPeak ? " · common window" : ""}`;
-      return `<div class="hist-bar${bucket.count === 0 ? " empty" : ""}${
+      }`;
+      return `<div class="death-bar${bucket.count === 0 ? " empty" : ""}${
         isPeak ? " peak" : ""
       }" style="height:${heightPct}%" title="${htmlEscape(tip)}"></div>`;
     })
     .join("");
-  const commonWindows = buckets
-    .filter((b) => b.count >= peakThreshold)
-    .sort((a, b) => a.startSec - b.startSec);
-  const windowTags = commonWindows
-    .map(
-      (b) =>
-        `<span class="death-window-tag">${fmtTime(b.startSec)}–${fmtTime(b.endSec)} <b>${b.count}</b></span>`,
-    )
+
+  const groups = new Map<number, ScoredAssignment[]>();
+  for (const assignment of params.assignments) {
+    const group = groups.get(assignment.index) ?? [];
+    group.push(assignment);
+    groups.set(assignment.index, group);
+  }
+  const markers = [...groups.values()]
+    .sort((a, b) => a[0].timeSec - b[0].timeSec || a[0].index - b[0].index)
+    .map((group) => {
+      const first = group[0];
+      const hit = group.filter((a) => a.status === "hit").length;
+      const rateClass =
+        hit / group.length >= 0.9 ? "ok" : hit / group.length >= 0.7 ? "warn" : "bad";
+      const leftPct = Math.min(100, Math.max(0, (first.timeSec / maxTimeSec) * 100));
+      const actor = params.actorsByID.get(first.actorID)?.name ?? first.tag;
+      const spellName = params.abilityNames.get(first.spellID) ?? first.spellID;
+      const tip = `${fmtTime(first.timeSec)} ${actor} – ${spellName} (${hit}/${group.length} hits)`;
+      return `<span class="assign-marker ${rateClass}" style="left:${leftPct.toFixed(2)}%" title="${htmlEscape(tip)}"></span>`;
+    })
     .join("");
-  const mid = buckets[Math.floor(buckets.length / 2)];
-  const endSec = buckets[buckets.length - 1]?.endSec ?? 0;
-  return `<div class="death-histogram widget">
-  <div class="widget-title">Death timing (all pulls)</div>
-  <div class="meta">${totalDeaths} deaths · first ${MAX_DEATHS_PER_PULL} per pull · ${DEATH_BUCKET_SEC}s buckets · brighter bars = common windows (≥${peakThreshold} deaths)</div>
-  <div class="histogram">${bars}</div>
-  <div class="histogram-axis">
+
+  const mid = params.deathHistogram[Math.floor(params.deathHistogram.length / 2)];
+  return `<div class="summary-timeline">
+  <div class="summary-timeline-track">
+    <div class="death-bars">${deathBars}</div>
+    <div class="assign-markers">${markers}</div>
+  </div>
+  <div class="summary-timeline-axis">
     <span>0:00</span>
     <span>${fmtTime(mid?.startSec ?? 0)}</span>
-    <span>${fmtTime(endSec)}</span>
+    <span>${fmtTime(maxTimeSec)}</span>
   </div>
-  ${
-    windowTags
-      ? `<div class="common-windows-label">Common death windows</div><div class="common-windows">${windowTags}</div>`
-      : ""
-  }
+  <div class="summary-timeline-legend">
+    <span><i class="legend-swatch death-swatch"></i> Deaths (${params.totalDeaths}, first ${MAX_DEATHS_PER_PULL}/pull)</span>
+    <span><i class="legend-swatch assign-swatch ok"></i> Assignment on-time rate</span>
+  </div>
 </div>`;
 }
 
@@ -858,7 +877,13 @@ export function renderHtml(params: {
     params.abilityNames,
   );
 
-  const deathHistogram = renderDeathHistogram(params.deathHistogram, params.pullDeaths.length);
+  const summaryTimeline = renderAssignmentSummaryTimeline({
+    assignments: params.assignments,
+    deathHistogram: params.deathHistogram,
+    totalDeaths: params.pullDeaths.length,
+    actorsByID: params.actorsByID,
+    abilityNames: params.abilityNames,
+  });
   const timelineRows = renderPullTimelineRows({
     assignments: params.assignments,
     pullDeaths: params.pullDeaths,
@@ -887,22 +912,26 @@ th { position: sticky; top: 0; background: #202020; z-index: 1; text-align: left
 tr.ok { background: rgba(40,130,70,.12); }
 tr.warn { background: rgba(180,130,20,.14); }
 tr.bad { background: rgba(160,50,50,.16); }
-tr.death { background: rgba(160,50,50,.10); }
+tr.death { background: rgba(40, 160, 160, 0.12); }
 .inner { margin: 10px 0; font-size: 12px; background: #151515; }
 .inner th { position: static; }
-.widget { border: 1px solid #333; border-radius: 8px; padding: 16px 18px; background: #181818; margin: 18px 0; }
-.widget-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; color: #f0f4ff; }
-.death-histogram .histogram { display: flex; align-items: flex-end; gap: 2px; height: 140px; padding: 8px 0 4px; border-bottom: 1px solid #333; }
-.death-histogram .hist-bar { flex: 1; min-width: 3px; background: linear-gradient(to top, #5a3030, #905050); border-radius: 2px 2px 0 0; cursor: default; transition: background 0.1s, box-shadow 0.1s; }
-.death-histogram .hist-bar.peak { background: linear-gradient(to top, #a03030, #f07070); box-shadow: 0 0 10px rgba(240, 100, 100, 0.35); }
-.death-histogram .hist-bar.empty { background: #222; min-height: 0; box-shadow: none; }
-.death-histogram .hist-bar:not(.empty):hover { filter: brightness(1.15); }
-.death-histogram .histogram-axis { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-top: 6px; padding: 0 2px; }
-.death-histogram .histogram-axis span:empty { display: none; }
-.common-windows-label { font-size: 0.78rem; font-weight: 600; color: #c89090; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 14px; }
-.common-windows { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-.death-window-tag { font-size: 11px; background: rgba(160, 50, 50, 0.18); border: 1px solid rgba(200, 80, 80, 0.35); padding: 4px 10px; border-radius: 999px; color: #e8c0c0; }
-.death-window-tag b { color: #ffb0b0; margin-left: 4px; }
+.summary-timeline { border: 1px solid #333; border-radius: 8px; padding: 14px 14px 10px; background: #181818; margin: 12px 0 18px; }
+.summary-timeline-track { position: relative; height: 88px; }
+.death-bars { display: flex; align-items: flex-end; gap: 2px; height: 100%; }
+.death-bar { flex: 1; min-width: 3px; background: linear-gradient(to top, #1a5a5a, #38b0b0); border-radius: 2px 2px 0 0; cursor: default; }
+.death-bar.peak { background: linear-gradient(to top, #22a0a0, #5ee0e0); box-shadow: 0 0 10px rgba(64, 224, 224, 0.35); }
+.death-bar.empty { background: #222; min-height: 0; box-shadow: none; }
+.death-bar:not(.empty):hover { filter: brightness(1.15); }
+.assign-markers { position: absolute; inset: 0; pointer-events: none; }
+.assign-marker { position: absolute; bottom: 0; top: 0; width: 2px; margin-left: -1px; pointer-events: auto; cursor: help; z-index: 2; border-radius: 1px; }
+.assign-marker.ok { background: rgba(74, 222, 128, 0.95); box-shadow: 0 0 6px rgba(74, 222, 128, 0.5); }
+.assign-marker.warn { background: rgba(250, 204, 21, 0.95); box-shadow: 0 0 6px rgba(250, 204, 21, 0.45); }
+.assign-marker.bad { background: rgba(248, 113, 113, 0.95); box-shadow: 0 0 6px rgba(248, 113, 113, 0.45); }
+.summary-timeline-axis { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-top: 8px; padding: 0 2px; }
+.summary-timeline-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; font-size: 11px; color: #8898b8; }
+.legend-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -2px; }
+.death-swatch { background: linear-gradient(to top, #1a5a5a, #5ee0e0); }
+.assign-swatch.ok { background: #4ade80; }
 summary { cursor: pointer; color: #9ecbff; }
 </style>
 </head>
@@ -916,9 +945,9 @@ summary { cursor: pointer; color: #9ecbff; }
   <div class="card"><b>${counts.get("miss") ?? 0}</b>No nearby cast</div>
   <div class="card"><b>${params.pullDeaths.length}</b>Raid deaths</div>
 </div>
-${deathHistogram}
 <h2>Assignment Summary Over the Evening</h2>
-<div class="meta">One row per planned assignment. "Death non-hit" counts misses/early/late rows where the assigned player was already dead at the planned time.</div>
+<div class="meta">One row per planned assignment. Cyan bars show when deaths happen across all pulls; vertical lines mark each assignment (green/yellow/red = hit rate). Hover for details.</div>
+${summaryTimeline}
 <table>
 <thead><tr><th>Assigned</th><th>Player</th><th>Spell</th><th>Reached</th><th>Hit</th><th>Early</th><th>Late</th><th>Miss</th><th>Death non-hit</th><th>Median Delta</th><th>Worst Pulls</th></tr></thead>
 <tbody>
