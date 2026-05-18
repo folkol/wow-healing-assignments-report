@@ -120,9 +120,54 @@
       margin-top: 16px;
     }
 
+    .form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .form-actions button[type="submit"] {
+      flex: 1 1 180px;
+    }
+
+    .btn-secondary {
+      padding: 11px 16px;
+      background: #1e2130;
+      border: 1px solid #2e3352;
+      border-radius: 8px;
+      color: #c8d4f0;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn-secondary:hover {
+      background: #252a3d;
+      border-color: #3d4a6e;
+    }
+
+    .btn-secondary.danger:hover {
+      background: rgba(160, 50, 50, 0.15);
+      border-color: rgba(200, 60, 60, 0.4);
+      color: #fca5a5;
+    }
+
+    .save-status {
+      flex: 1 1 100%;
+      font-size: 0.82rem;
+      color: #6ee7a0;
+      min-height: 1.2em;
+      margin: 0;
+    }
+
+    .save-status.muted { color: #8898b8; }
+    .save-status.error { color: #fca5a5; }
+
     button[type="submit"] {
-      width: 100%;
-      padding: 13px;
+      width: auto;
+      padding: 13px 20px;
       background: #3b5bdb;
       border: none;
       border-radius: 8px;
@@ -272,7 +317,12 @@
           </div>
         </details>
 
-        <button type="submit" id="submitBtn">Generate Report</button>
+        <div class="form-actions">
+          <button type="submit" id="submitBtn">Generate Report</button>
+          <button type="button" class="btn-secondary" id="saveBtn">Save inputs</button>
+          <button type="button" class="btn-secondary danger" id="clearSavedBtn">Clear saved</button>
+          <p class="save-status muted" id="saveStatus"></p>
+        </div>
       </form>
 
       <div class="progress" id="progress">
@@ -289,13 +339,83 @@
   </div>
 
   <script>
+    const STORAGE_KEY = "cooldown-audit-form";
+
     const form = document.getElementById("auditForm");
     const submitBtn = document.getElementById("submitBtn");
+    const saveBtn = document.getElementById("saveBtn");
+    const clearSavedBtn = document.getElementById("clearSavedBtn");
+    const saveStatus = document.getElementById("saveStatus");
     const progressEl = document.getElementById("progress");
     const resultEl = document.getElementById("result");
     const resultLabel = document.getElementById("resultLabel");
     const resultLink = document.getElementById("resultLink");
     const errorText = document.getElementById("errorText");
+
+    function readFormState() {
+      const rawOffsets = document.getElementById("sampleOffsets").value;
+      const sampleOffsets = rawOffsets
+        .split(",")
+        .map((v) => parseFloat(v.trim()))
+        .filter((v) => isFinite(v));
+      return {
+        report: document.getElementById("reportUrl").value.trim(),
+        assignments: document.getElementById("assignments").value,
+        hitWindowSec: parseFloat(document.getElementById("hitWindow").value),
+        actualWindowSec: parseFloat(document.getElementById("actualWindow").value),
+        sampleOffsets: rawOffsets,
+      };
+    }
+
+    function applyFormState(state) {
+      if (!state) return;
+      if (state.report) document.getElementById("reportUrl").value = state.report;
+      if (state.assignments) document.getElementById("assignments").value = state.assignments;
+      if (state.hitWindowSec != null && isFinite(state.hitWindowSec)) {
+        document.getElementById("hitWindow").value = state.hitWindowSec;
+      }
+      if (state.actualWindowSec != null && isFinite(state.actualWindowSec)) {
+        document.getElementById("actualWindow").value = state.actualWindowSec;
+      }
+      if (state.sampleOffsets) document.getElementById("sampleOffsets").value = state.sampleOffsets;
+    }
+
+    function saveFormState(message) {
+      try {
+        const state = { ...readFormState(), savedAt: new Date().toISOString() };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        showSaveStatus(message ?? "Saved to this browser.");
+      } catch (err) {
+        showSaveStatus(err.message ?? "Could not save.", false, true);
+      }
+    }
+
+    function loadFormState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const state = JSON.parse(raw);
+        applyFormState(state);
+        const when = state.savedAt ? new Date(state.savedAt).toLocaleString() : "earlier";
+        showSaveStatus(`Restored inputs saved ${when}.`, true);
+      } catch {
+        showSaveStatus("Could not restore saved inputs.", false, true);
+      }
+    }
+
+    function clearFormState() {
+      localStorage.removeItem(STORAGE_KEY);
+      showSaveStatus("Saved inputs cleared.", true);
+    }
+
+    function showSaveStatus(text, muted = false, isError = false) {
+      saveStatus.textContent = text;
+      saveStatus.className = isError ? "save-status error" : muted ? "save-status muted" : "save-status";
+    }
+
+    saveBtn.addEventListener("click", () => saveFormState());
+    clearSavedBtn.addEventListener("click", clearFormState);
+    loadFormState();
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -304,17 +424,17 @@
       progressEl.style.display = "block";
       resultEl.style.display = "none";
 
-      const rawOffsets = document.getElementById("sampleOffsets").value;
-      const sampleOffsets = rawOffsets
+      const state = readFormState();
+      const sampleOffsets = state.sampleOffsets
         .split(",")
         .map((v) => parseFloat(v.trim()))
         .filter((v) => isFinite(v));
 
       const body = {
-        report: document.getElementById("reportUrl").value.trim(),
-        assignments: document.getElementById("assignments").value,
-        hitWindowSec: parseFloat(document.getElementById("hitWindow").value),
-        actualWindowSec: parseFloat(document.getElementById("actualWindow").value),
+        report: state.report,
+        assignments: state.assignments,
+        hitWindowSec: state.hitWindowSec,
+        actualWindowSec: state.actualWindowSec,
         sampleOffsets,
       };
 
@@ -330,6 +450,7 @@
         if (!resp.ok || data.error) {
           showError(data.error ?? `HTTP ${resp.status}`);
         } else {
+          saveFormState("Report generated — inputs saved to this browser.");
           showSuccess(data.url);
         }
       } catch (err) {
