@@ -1,0 +1,745 @@
+[
+  {
+    "pull": 3,
+    "time": "0:16",
+    "player": "Lie",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 6,
+    "sampleCasts5s": [
+      "Shuriken Storm",
+      "Shuriken Storm",
+      "Charge!",
+      "Shadow Dance",
+      "Shadow Blades",
+      "Secret Technique"
+    ]
+  },
+  {
+    "pull": 4,
+    "time": "1:07",
+    "player": "Angeyja",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 3,
+    "sampleCasts5s": [
+      "Penance",
+      "Ultimate Penitence",
+      "Ultimate Penitence"
+    ]
+  },
+  {
+    "pull": 4,
+    "time": "1:39",
+    "player": "Valenzor",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [
+      "Anti-Magic Shell",
+      "Anti-Magic Shell"
+    ],
+    "castCount5s": 4,
+    "sampleCasts5s": [
+      "Scourge Strike",
+      "Death Coil",
+      "Charge!",
+      "Army of the Dead"
+    ]
+  },
+  {
+    "pull": 5,
+    "time": "0:40",
+    "player": "Nuduliniel",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 3,
+    "sampleCasts5s": [
+      "Vivify",
+      "Vivify",
+      "Roll"
+    ]
+  },
+  {
+    "pull": 5,
+    "time": "0:40",
+    "player": "Globalisten",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 3,
+    "sampleCasts5s": [
+      "Execute",
+      "Bloodthirst",
+      "Raging Blow"
+    ]
+  },
+  {
+    "pull": 6,
+    "time": "0:44",
+    "player": "Sinxytwo",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [
+      "Fueled by Violence",
+      "Fueled by Violence"
+    ],
+    "castCount5s": 3,
+    "sampleCasts5s": [
+      "Sweeping Strikes",
+      "Execute",
+      "Execute"
+    ]
+  },
+  {
+    "pull": 6,
+    "time": "1:02",
+    "player": "Zaijko",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 4,
+    "sampleCasts5s": [
+      "Putrefy",
+      "Death Coil",
+      "Death Coil",
+      "Festering Strike"
+    ]
+  },
+  {
+    "pull": 6,
+    "time": "1:02",
+    "player": "Globalisten",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 9,
+    "sampleCasts5s": [
+      "Rampage",
+      "Bloodbath",
+      "Odyn's Fury",
+      "Odyn's Fury",
+      "Odyn's Fury Off-Hand",
+      "Odyn's Fury",
+      "Odyn's Fury Off-Hand",
+      "Whirlwind"
+    ]
+  },
+  {
+    "pull": 6,
+    "time": "1:07",
+    "player": "Skäggbuff",
+    "auditDefUsed": "none",
+    "auditPots": "Healthstone @ -5.0s; Silvermoon Health Potion @ -4.3s",
+    "broadDefCasts5s": [
+      "Healthstone",
+      "Silvermoon Health Potion"
+    ],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [
+      "Healthstone",
+      "Silvermoon Health Potion"
+    ],
+    "castCount5s": 8,
+    "sampleCasts5s": [
+      "Healthstone",
+      "Sunfire",
+      "Silvermoon Health Potion",
+      "Wrath",
+      "Wrath",
+      "Wrath",
+      "Wrath",
+      "Wrath"
+    ]
+  },
+  {
+    "pull": 7,
+    "time": "0:15",
+    "player": "Skäggbuff",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 5,
+    "sampleCasts5s": [
+      "Wrath",
+      "Wrath",
+      "Wrath",
+      "Wrath",
+      "Typhoon"
+    ]
+  },
+  {
+    "pull": 7,
+    "time": "0:16",
+    "player": "Zaijko",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 3,
+    "sampleCasts5s": [
+      "Scourge Strike",
+      "Scourge Strike",
+      "Scourge Strike"
+    ]
+  },
+  {
+    "pull": 10,
+    "time": "2:36",
+    "player": "Globalisten",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 1,
+    "sampleCasts5s": [
+      "Heroic Leap"
+    ]
+  },
+  {
+    "pull": 11,
+    "time": "0:40",
+    "player": "Gránny",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 5,
+    "sampleCasts5s": [
+      "Whirlwind",
+      "Rampage",
+      "Execute",
+      "Bloodthirst",
+      "Raging Blow"
+    ]
+  },
+  {
+    "pull": 11,
+    "time": "1:02",
+    "player": "Gormano",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [
+      "Vampiric Embrace",
+      "Vampiric Embrace"
+    ],
+    "castCount5s": 0,
+    "sampleCasts5s": []
+  },
+  {
+    "pull": 11,
+    "time": "1:02",
+    "player": "Puttepowa",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [
+      "Vampiric Embrace"
+    ],
+    "castCount5s": 3,
+    "sampleCasts5s": [
+      "Rampage",
+      "Crushing Blow",
+      "Whirlwind"
+    ]
+  },
+  {
+    "pull": 12,
+    "time": "2:39",
+    "player": "Angeyja",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 1,
+    "sampleCasts5s": [
+      "Angelic Feather"
+    ]
+  },
+  {
+    "pull": 13,
+    "time": "0:40",
+    "player": "Valenzor",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 4,
+    "sampleCasts5s": [
+      "Death Coil",
+      "Scourge Strike",
+      "Scourge Strike",
+      "Soul Reaper"
+    ]
+  },
+  {
+    "pull": 13,
+    "time": "0:40",
+    "player": "Zaijko",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 4,
+    "sampleCasts5s": [
+      "Scourge Strike",
+      "Soul Reaper",
+      "Death Coil",
+      "Festering Strike"
+    ]
+  },
+  {
+    "pull": 13,
+    "time": "1:02",
+    "player": "Nuduliniel",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 3,
+    "sampleCasts5s": [
+      "Soothing Mist",
+      "Enveloping Mist",
+      "Enveloping Mist"
+    ]
+  },
+  {
+    "pull": 13,
+    "time": "1:07",
+    "player": "Gormano",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 2,
+    "sampleCasts5s": [
+      "Judgment",
+      "Hammer of Wrath"
+    ]
+  },
+  {
+    "pull": 14,
+    "time": "2:35",
+    "player": "Globalisten",
+    "auditDefUsed": "none",
+    "auditPots": "Silvermoon Health Potion @ -1.7s",
+    "broadDefCasts5s": [
+      "Silvermoon Health Potion"
+    ],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [
+      "Silvermoon Health Potion"
+    ],
+    "castCount5s": 2,
+    "sampleCasts5s": [
+      "Heroic Leap",
+      "Silvermoon Health Potion"
+    ]
+  },
+  {
+    "pull": 16,
+    "time": "1:07",
+    "player": "Globalisten",
+    "auditDefUsed": "Spell Reflection @ -4.2s",
+    "auditPots": "none",
+    "broadDefCasts5s": [
+      "Spell Reflection"
+    ],
+    "broadDefBuffsApplied5s": [
+      "Spell Reflection",
+      "Spell Reflection"
+    ],
+    "potHeals5s": [],
+    "castCount5s": 4,
+    "sampleCasts5s": [
+      "Whirlwind",
+      "Spell Reflection",
+      "Whirlwind",
+      "Execute"
+    ]
+  },
+  {
+    "pull": 17,
+    "time": "0:16",
+    "player": "Gránny",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 7,
+    "sampleCasts5s": [
+      "Bloodthirst",
+      "Rampage",
+      "Raging Blow",
+      "Taunt",
+      "Whirlwind",
+      "Recklessness",
+      "Rampage"
+    ]
+  },
+  {
+    "pull": 18,
+    "time": "1:02",
+    "player": "Puttepowa",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 3,
+    "sampleCasts5s": [
+      "Whirlwind",
+      "Bloodthirst",
+      "Whirlwind"
+    ]
+  },
+  {
+    "pull": 18,
+    "time": "1:04",
+    "player": "Angeyja",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 6,
+    "sampleCasts5s": [
+      "Shadow Word: Death",
+      "Smite",
+      "Power Word: Shield",
+      "Smite",
+      "Smite",
+      "Penance"
+    ]
+  },
+  {
+    "pull": 19,
+    "time": "1:06",
+    "player": "Gránny",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 6,
+    "sampleCasts5s": [
+      "Execute",
+      "Recklessness",
+      "Rampage",
+      "Rampage",
+      "Execute",
+      "Bladestorm"
+    ]
+  },
+  {
+    "pull": 20,
+    "time": "0:16",
+    "player": "Valenzor",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [
+      "Anti-Magic Shell",
+      "Anti-Magic Shell",
+      "Anti-Magic Shell",
+      "Anti-Magic Shell",
+      "Anti-Magic Shell",
+      "Anti-Magic Shell",
+      "Anti-Magic Shell"
+    ],
+    "castCount5s": 5,
+    "sampleCasts5s": [
+      "Necrotic Coil",
+      "Scourge Strike",
+      "Scourge Strike",
+      "Necrotic Coil",
+      "Necrotic Coil"
+    ]
+  },
+  {
+    "pull": 20,
+    "time": "2:36",
+    "player": "Globalisten",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 1,
+    "sampleCasts5s": [
+      "Heroic Leap"
+    ]
+  },
+  {
+    "pull": 21,
+    "time": "1:39",
+    "player": "Papilock",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 4,
+    "sampleCasts5s": [
+      "Conflagrate",
+      "Shadowburn",
+      "Burning Rush",
+      "Chaos Bolt"
+    ]
+  },
+  {
+    "pull": 22,
+    "time": "0:17",
+    "player": "Gormano",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 13,
+    "sampleCasts5s": [
+      "Divine Hammer",
+      "Divine Hammer",
+      "Final Verdict",
+      "Blade of Justice",
+      "Crusading Strikes",
+      "Crusading Strikes",
+      "Divine Hammer",
+      "Final Verdict"
+    ]
+  },
+  {
+    "pull": 23,
+    "time": "1:02",
+    "player": "Gormano",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 13,
+    "sampleCasts5s": [
+      "Crusading Strikes",
+      "Crusading Strikes",
+      "Hammer of Light",
+      "Empyrean Hammer",
+      "Empyrean Hammer",
+      "Divine Hammer",
+      "Empyrean Hammer",
+      "Divine Hammer"
+    ]
+  },
+  {
+    "pull": 23,
+    "time": "1:06",
+    "player": "Gránny",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 5,
+    "sampleCasts5s": [
+      "Rampage",
+      "Whirlwind",
+      "Whirlwind",
+      "Recklessness",
+      "Rampage"
+    ]
+  },
+  {
+    "pull": 23,
+    "time": "1:39",
+    "player": "Gormano",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 4,
+    "sampleCasts5s": [
+      "Hammer of Wrath",
+      "Crusading Strikes",
+      "Final Verdict",
+      "Hammer of Wrath"
+    ]
+  },
+  {
+    "pull": 24,
+    "time": "1:37",
+    "player": "Globalisten",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 6,
+    "sampleCasts5s": [
+      "Execute",
+      "Whirlwind",
+      "Charge",
+      "Heroic Throw",
+      "Pummel",
+      "Charge"
+    ]
+  },
+  {
+    "pull": 25,
+    "time": "1:39",
+    "player": "Skäggbuff",
+    "auditDefUsed": "Bear Form @ -2.8s",
+    "auditPots": "none",
+    "broadDefCasts5s": [
+      "Bear Form"
+    ],
+    "broadDefBuffsApplied5s": [
+      "Bear Form"
+    ],
+    "potHeals5s": [
+      "Aessina's Renewal"
+    ],
+    "castCount5s": 2,
+    "sampleCasts5s": [
+      "Bear Form",
+      "Frenzied Regeneration"
+    ]
+  },
+  {
+    "pull": 25,
+    "time": "2:35",
+    "player": "Nuduliniel",
+    "auditDefUsed": "none",
+    "auditPots": "Silvermoon Health Potion @ -4.4s",
+    "broadDefCasts5s": [
+      "Silvermoon Health Potion"
+    ],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [
+      "Silvermoon Health Potion"
+    ],
+    "castCount5s": 3,
+    "sampleCasts5s": [
+      "Vivify",
+      "Vivify",
+      "Silvermoon Health Potion"
+    ]
+  },
+  {
+    "pull": 26,
+    "time": "0:17",
+    "player": "Sinxytwo",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [
+      "Fueled by Violence"
+    ],
+    "castCount5s": 4,
+    "sampleCasts5s": [
+      "Heroic Strike",
+      "Execute",
+      "Overpower",
+      "Overpower"
+    ]
+  },
+  {
+    "pull": 26,
+    "time": "1:07",
+    "player": "Gránny",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [
+      "Vampiric Embrace"
+    ],
+    "castCount5s": 8,
+    "sampleCasts5s": [
+      "Execute",
+      "Rampage",
+      "Rampage",
+      "Odyn's Fury",
+      "Odyn's Fury",
+      "Odyn's Fury Off-Hand",
+      "Odyn's Fury",
+      "Odyn's Fury Off-Hand"
+    ]
+  },
+  {
+    "pull": 27,
+    "time": "0:16",
+    "player": "Sinxytwo",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 4,
+    "sampleCasts5s": [
+      "Overpower",
+      "Mortal Strike",
+      "Heroic Strike",
+      "Overpower"
+    ]
+  },
+  {
+    "pull": 27,
+    "time": "2:36",
+    "player": "Gránny",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 0,
+    "sampleCasts5s": []
+  },
+  {
+    "pull": 28,
+    "time": "2:36",
+    "player": "Gránny",
+    "auditDefUsed": "none",
+    "auditPots": "none",
+    "broadDefCasts5s": [],
+    "broadDefBuffsApplied5s": [],
+    "potHeals5s": [],
+    "castCount5s": 1,
+    "sampleCasts5s": [
+      "Heroic Leap"
+    ]
+  }
+]
