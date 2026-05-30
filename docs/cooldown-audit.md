@@ -106,7 +106,7 @@ Add `--no-audit` to skip the per-death defensive/pot audit table and generate th
 ## Report Contents
 
 1. **Summary cards** — pull count, raw deaths, pre-wipe deaths, wipe-cascade excluded deaths.
-2. **Histograms** — aggregate deaths by 30s and 10s windows; hotspot windows highlighted.
+2. **Histograms** — aggregate deaths by 5s and 10s windows; hotspot windows highlighted.
 3. **Hotspot table** — each recurring danger window with mechanic name, death count, top killing blows, and repeat offenders.
 4. **Per-pull timeline** — SVG timeline per pull showing pre-wipe deaths (red = hotspot window, blue = other), orange wipe-call tick, and yellow hotspot bands.
 5. **Death audit table** (with `--audit`, the default) — grouped by hotspot window, one row per death: 5s damage, top damage sources, defensives available/on-cooldown, defensives/pots used in the 5s before death.

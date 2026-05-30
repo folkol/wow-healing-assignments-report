@@ -78,7 +78,7 @@ export interface HotspotReportData {
   rawDeaths: number;
   prewipeDeaths: number;
   excludedDeaths: number;
-  histogram30s: DeathTimeBucket[];
+  histogram5s: DeathTimeBucket[];
   histogram10s: DeathTimeBucket[];
   hotspotWindows: HotspotWindow[];
   /** Wipe call time per pull (null if no cluster detected). */
@@ -208,9 +208,8 @@ export async function generateDeathHotspotsHtml(opts: DeathHotspotsOptions): Pro
     ...selectedFights.map((f) => (f.endTime - f.startTime) / 1000),
   );
 
-  const histogram30s = buildDeathHistogramBuckets(prewipePullDeaths, maxFightDurationSec, 30);
-  const histogram10s = buildDeathHistogramBuckets(prewipePullDeaths, maxFightDurationSec, 10);
   const histogram5s = buildDeathHistogramBuckets(prewipePullDeaths, maxFightDurationSec, 5);
+  const histogram10s = buildDeathHistogramBuckets(prewipePullDeaths, maxFightDurationSec, 10);
 
   // Resolve hotspot windows
   const configWindows = ENCOUNTER_HOTSPOTS.find((e) => e.encounterID === encounterID)?.windows;
@@ -254,7 +253,7 @@ export async function generateDeathHotspotsHtml(opts: DeathHotspotsOptions): Pro
     rawDeaths: rawDeaths.length,
     prewipeDeaths: prewipePullDeaths.length,
     excludedDeaths: rawDeaths.length - prewipePullDeaths.length,
-    histogram30s,
+    histogram5s,
     histogram10s,
     hotspotWindows,
     wipeSecs,
@@ -521,10 +520,22 @@ function renderHistogram(
   buckets: DeathTimeBucket[],
   label: string,
   hotspotWindows: HotspotWindow[],
+  bucketSec: number,
 ): string {
   if (buckets.length === 0) return "";
   const maxCount = Math.max(...buckets.map((b) => b.count), 1);
   const peakThreshold = Math.max(2, Math.ceil(maxCount * 0.45));
+  const maxTimeSec = buckets.at(-1)?.endSec ?? 1;
+  const barWidthPx = bucketSec <= 5 ? 7 : 10;
+  const trackWidthPx = buckets.length * barWidthPx;
+
+  const bands = hotspotWindows
+    .map((w) => {
+      const leftPx = (w.start / maxTimeSec) * trackWidthPx;
+      const widthPx = ((w.end - w.start) / maxTimeSec) * trackWidthPx;
+      return `<div class="hist-hotspot-band" style="left:${leftPx.toFixed(1)}px;width:${widthPx.toFixed(1)}px" title="${htmlEscape(w.label)}"></div>`;
+    })
+    .join("");
 
   const bars = buckets
     .map((b) => {
@@ -542,23 +553,28 @@ function renderHistogram(
       ]
         .filter(Boolean)
         .join(" ");
-      return `<div class="${cls}" style="height:${heightPct}%" title="${htmlEscape(tip)}"></div>`;
+      return `<div class="${cls}" style="width:${barWidthPx}px;height:${heightPct}%" title="${htmlEscape(tip)}"></div>`;
     })
     .join("");
 
-  const axisLabels = [
-    buckets[0],
-    buckets[Math.floor(buckets.length / 2)],
-    buckets[buckets.length - 1],
-  ]
-    .filter(Boolean)
-    .map((b) => `<span>${fmtTime(b!.startSec)}</span>`)
-    .join("");
+  const tickIntervalSec = maxTimeSec > 300 ? 60 : maxTimeSec > 120 ? 30 : 15;
+  const axisTicks: string[] = [];
+  for (let t = 0; t <= maxTimeSec; t += tickIntervalSec) {
+    const leftPx = (t / maxTimeSec) * trackWidthPx;
+    axisTicks.push(
+      `<span class="hist-tick" style="left:${leftPx.toFixed(1)}px">${fmtTime(t)}</span>`,
+    );
+  }
 
   return `<div class="hist-section">
   <div class="hist-label">${htmlEscape(label)}</div>
-  <div class="hist-track">${bars}</div>
-  <div class="hist-axis">${axisLabels}</div>
+  <div class="hist-scroll">
+    <div class="hist-track-wrap" style="width:${trackWidthPx}px">
+      <div class="hist-bands">${bands}</div>
+      <div class="hist-track">${bars}</div>
+      <div class="hist-axis">${axisTicks.join("")}</div>
+    </div>
+  </div>
 </div>`;
 }
 
@@ -751,8 +767,8 @@ export function renderDeathHotspotsHtml(data: HotspotReportData): string {
   );
 
   const histograms = [
-    renderHistogram(data.histogram30s, "Deaths by 30s window", data.hotspotWindows),
-    renderHistogram(data.histogram10s, "Deaths by 10s window", data.hotspotWindows),
+    renderHistogram(data.histogram5s, "Deaths by 5s window", data.hotspotWindows, 5),
+    renderHistogram(data.histogram10s, "Deaths by 10s window", data.hotspotWindows, 10),
   ].join("\n");
 
   const hotspotTable = renderHotspotTable(
@@ -801,13 +817,18 @@ th { position: sticky; top: 0; background: #1c1c1c; z-index: 1; }
 td.small { font-size: 10px; color: #b0bcd8; max-width: 160px; }
 .hist-section { margin: 12px 0; }
 .hist-label { font-size: 11px; color: #8898b8; margin-bottom: 4px; }
-.hist-track { display: flex; align-items: flex-end; gap: 1px; height: 80px; border-bottom: 1px solid #2e3352; }
-.hist-bar { flex: 1; min-width: 2px; background: linear-gradient(to top, #1a5a5a, #38b0b0); border-radius: 2px 2px 0 0; cursor: default; }
+.hist-scroll { overflow-x: auto; padding-bottom: 4px; }
+.hist-track-wrap { position: relative; min-width: 100%; }
+.hist-bands { position: absolute; inset: 0 0 18px 0; pointer-events: none; }
+.hist-hotspot-band { position: absolute; top: 0; bottom: 0; background: rgba(251, 191, 36, 0.12); border-left: 1px solid rgba(251, 191, 36, 0.25); border-right: 1px solid rgba(251, 191, 36, 0.25); }
+.hist-track { display: flex; align-items: flex-end; gap: 1px; height: 80px; border-bottom: 1px solid #2e3352; position: relative; z-index: 1; }
+.hist-bar { flex: 0 0 auto; min-width: 2px; background: linear-gradient(to top, #1a5a5a, #38b0b0); border-radius: 2px 2px 0 0; cursor: default; }
 .hist-bar.peak { background: linear-gradient(to top, #22a0a0, #5ee0e0); box-shadow: 0 0 8px rgba(64,224,224,0.3); }
 .hist-bar.hotspot { background: linear-gradient(to top, #7c1a1a, #f87171); }
 .hist-bar.peak.hotspot { background: linear-gradient(to top, #a02020, #f87171); box-shadow: 0 0 8px rgba(248,113,113,0.4); }
 .hist-bar.empty { background: #1a1a1a; min-height: 0; }
-.hist-axis { display: flex; justify-content: space-between; font-size: 10px; color: #666; margin-top: 3px; }
+.hist-axis { position: relative; height: 16px; margin-top: 4px; }
+.hist-tick { position: absolute; transform: translateX(-50%); font-size: 10px; color: #666; white-space: nowrap; }
 .timeline-wrap { overflow-x: auto; }
 </style>
 </head>
@@ -827,7 +848,7 @@ td.small { font-size: 10px; color: #b0bcd8; max-width: 160px; }
 </div>
 
 <h2>Death Histograms</h2>
-<div class="meta">Pre-wipe deaths only. Red bars overlap with hotspot windows; bright/glowing = peak bucket (&ge;45% of max). Yellow bands are hotspot windows.</div>
+<div class="meta">Pre-wipe deaths only. Hover bars for exact 5s/10s ranges. Red bars = hotspot windows; yellow bands mark configured hotspot windows; bright/glowing = peak bucket (&ge;45% of max).</div>
 ${histograms}
 
 ${hotspotTable}
