@@ -1,0 +1,14 @@
+[
+  {
+    "encounterID": 3181,
+    "name": "Crown of the Cosmos",
+    "windows": [
+      { "label": "0:15–0:20", "start": 15, "end": 20, "mechanic": "Bursting Emptiness" },
+      { "label": "0:40–0:45", "start": 40, "end": 45, "mechanic": "Bursting Emptiness / Silverstrike Arrow" },
+      { "label": "1:00–1:05", "start": 60, "end": 65, "mechanic": "Silverstrike Arrow" },
+      { "label": "1:05–1:10", "start": 65, "end": 70, "mechanic": "Void Expulsion" },
+      { "label": "1:35–1:40", "start": 95, "end": 100, "mechanic": "Void Expulsion / Silverstrike Arrow" },
+      { "label": "2:35–2:40", "start": 155, "end": 160, "mechanic": "Silverstrike Barrage (Intermission)" }
+    ]
+  }
+]

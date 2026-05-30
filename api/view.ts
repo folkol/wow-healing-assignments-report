@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { get } from "@vercel/blob";
 
-/** Blob pathnames from generate.ts — unguessable via addRandomSuffix. */
-const PATHNAME_RE = /^cooldown-audit-[A-Za-z0-9._-]+\.html$/;
+/** Blob pathnames from generate.ts / generate-hotspots.ts — unguessable via addRandomSuffix. */
+const PATHNAME_RE = /^(cooldown-audit|death-hotspots)-[A-Za-z0-9._-]+\.html$/;
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (req.method !== "GET") {

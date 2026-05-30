@@ -1,3 +1,9 @@
+# WCL Analysis Tools
+
+Two report types are available: **Cooldown Assignment Audit** and **Death Hotspots**.
+
+---
+
 # Cooldown Assignment Audit
 
 Generate an HTML timeline report from a Warcraft Logs report and a WowUtils `Copy CDs` export.
@@ -74,3 +80,60 @@ The `vercel dev` server mirrors the production routing: `public/` files are serv
 The API route requests `maxDuration: 300` seconds (requires Vercel Pro). On the Hobby tier the
 hard limit is 60 seconds. Large reports with many pulls may time out on Hobby — use the CLI
 locally or upgrade to Pro.
+
+---
+
+# Death Hotspots
+
+Identify recurring death spikes across all pulls of a boss encounter. No WowUtils assignments
+needed — just a WCL report URL.
+
+## Usage
+
+```powershell
+npm run death-hotspots -- --report "https://www.warcraftlogs.com/reports/gTYPRBaKGVCf2Fbc" --out crown-hotspots.html --open
+```
+
+Add `--no-audit` to skip the per-death defensive/pot audit table and generate the report much faster (10–20s vs 1–3 min).
+
+## Useful Options
+
+- `--encounter 3181`: override the encounter ID (auto-detected from the most-frequent boss encounter if omitted).
+- `--difficulty Mythic`: override the difficulty (auto-detected if omitted). Numeric IDs also work.
+- `--no-audit`: generate discovery-only report (histograms, hotspot table, per-pull timeline) without the per-death defensive/pot table.
+- `--open`: open the HTML report after generating it.
+
+## Report Contents
+
+1. **Summary cards** — pull count, raw deaths, pre-wipe deaths, wipe-cascade excluded deaths.
+2. **Histograms** — aggregate deaths by 30s and 10s windows; hotspot windows highlighted.
+3. **Hotspot table** — each recurring danger window with mechanic name, death count, top killing blows, and repeat offenders.
+4. **Per-pull timeline** — SVG timeline per pull showing pre-wipe deaths (red = hotspot window, blue = other), orange wipe-call tick, and yellow hotspot bands.
+5. **Death audit table** (with `--audit`, the default) — grouped by hotspot window, one row per death: 5s damage, top damage sources, defensives available/on-cooldown, defensives/pots used in the 5s before death.
+
+## Wipe filter
+
+A "wipe call" is detected when 5 or more deaths occur within any 10-second window. Only deaths
+*before* that cluster count toward analysis; the wipe-cascade is excluded.
+
+## Encounter config
+
+Known hotspot windows are stored in `src/data/encounter-hotspots.json`. Crown of the Cosmos
+(encounter 3181) is pre-configured with the six windows identified during analysis. For other
+encounters without a config entry, hotspot windows are auto-detected from the 5s death histogram
+using peaks that reach at least 45% of the maximum bucket.
+
+## Web App (Death Hotspots tab)
+
+The Death Hotspots form is on the second tab of the Vercel landing page. Fields:
+
+- **WCL URL** — required.
+- **Encounter ID** — optional; auto-detected if blank.
+- **Difficulty** — optional; auto-detected if blank.
+- **Include def/pot audit table** — checked by default; uncheck for a fast discovery-only report.
+
+### Timeout note
+
+Discovery-only mode completes in 10–20 seconds (safe on Hobby tier). The full audit with
+defensive/pot analysis takes 60–180 extra seconds for a 30-pull Crown session; this requires
+the Vercel Pro tier (300-second limit already configured in `vercel.json`).

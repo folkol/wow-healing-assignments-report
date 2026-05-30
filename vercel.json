@@ -2,6 +2,9 @@
   "functions": {
     "api/generate.ts": {
       "maxDuration": 300
+    },
+    "api/generate-hotspots.ts": {
+      "maxDuration": 300
     }
   }
 }

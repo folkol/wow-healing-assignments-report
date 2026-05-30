@@ -12,6 +12,7 @@
     "start": "node dist/server.js",
     "dev": "tsc --watch",
     "cooldown-audit": "tsx src/cli/cooldownAudit.ts",
+    "death-hotspots": "tsx src/cli/deathHotspots.ts",
     "type-check": "tsc --noEmit && tsc -p tsconfig.api.json",
     "test": "node --test --import tsx test/**/*.test.ts"
   },

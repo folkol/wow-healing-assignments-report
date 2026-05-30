@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cooldown Audit — Vanguard</title>
+  <title>WCL Analysis Tools</title>
   <style>
     :root { color-scheme: dark; }
 
@@ -35,9 +35,37 @@
 
     .subtitle {
       color: #8898b8;
-      margin: 0 0 36px;
+      margin: 0 0 28px;
       font-size: 0.95rem;
     }
+
+    /* Tab nav */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #252836;
+      padding-bottom: 0;
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: #8898b8;
+      font-size: 0.92rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-bottom: -1px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .tab-btn:hover { color: #c8d4f0; }
+    .tab-btn.active { color: #93c5fd; border-bottom-color: #3b5bdb; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
 
     .card {
       background: #16181f;
@@ -93,6 +121,39 @@
 
     .row > .field {
       flex: 1;
+    }
+
+    .field-hint {
+      font-size: 0.78rem;
+      color: #6b7fa8;
+      margin-top: -14px;
+      margin-bottom: 16px;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #3b5bdb;
+      cursor: pointer;
+      margin: 0;
+      flex-shrink: 0;
+    }
+
+    .checkbox-row label {
+      margin: 0;
+      text-transform: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: #c8d4f0;
+      letter-spacing: 0;
+      cursor: pointer;
     }
 
     details.advanced {
@@ -271,170 +332,323 @@
 </head>
 <body>
   <div class="container">
-    <h1>Cooldown Audit</h1>
+    <h1>WCL Analysis Tools</h1>
     <p class="subtitle">
-      Paste a Warcraft Logs report URL and your WowUtils healing assignments.<br>
-      A shareable report link is generated server-side — WCL credentials are never exposed.
+      Generate shareable reports from Warcraft Logs data — WCL credentials never leave the server.
     </p>
 
-    <div class="card">
-      <form id="auditForm">
-        <label for="reportUrl">Warcraft Logs Report URL</label>
-        <input
-          type="text"
-          id="reportUrl"
-          name="report"
-          placeholder="https://www.warcraftlogs.com/reports/XXXXXXXXXXXXXXXXXX"
-          required
-          autocomplete="off"
-          spellcheck="false"
-        />
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="audit">Cooldown Audit</button>
+      <button class="tab-btn" data-tab="hotspots">Death Hotspots</button>
+    </div>
 
-        <label for="assignments">WowUtils Assignments (paste "Copy CDs" output)</label>
-        <textarea
-          id="assignments"
-          name="assignments"
-          placeholder="Name:...; EncounterID:...; Difficulty:Mythic;&#10;time:30; spellid:98008; tag:Healername; bossSpell:12345;&#10;..."
-          required
-          spellcheck="false"
-        ></textarea>
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Tab 1: Cooldown Audit                                                -->
+    <!-- ------------------------------------------------------------------ -->
+    <div id="tab-audit" class="tab-panel active">
+      <div class="card">
+        <form id="auditForm">
+          <label for="reportUrl">Warcraft Logs Report URL</label>
+          <input
+            type="text"
+            id="reportUrl"
+            name="report"
+            placeholder="https://www.warcraftlogs.com/reports/XXXXXXXXXXXXXXXXXX"
+            required
+            autocomplete="off"
+            spellcheck="false"
+          />
 
-        <details class="advanced">
-          <summary>Advanced options</summary>
-          <div class="advanced-body">
-            <div class="row">
-              <div class="field">
-                <label for="hitWindow">Hit window (seconds)</label>
-                <input type="number" id="hitWindow" name="hitWindowSec" value="8" min="1" max="60" step="1" />
+          <label for="assignments">WowUtils Assignments (paste "Copy CDs" output)</label>
+          <textarea
+            id="assignments"
+            name="assignments"
+            placeholder="Name:...; EncounterID:...; Difficulty:Mythic;&#10;time:30; spellid:98008; tag:Healername; bossSpell:12345;&#10;..."
+            required
+            spellcheck="false"
+          ></textarea>
+
+          <details class="advanced">
+            <summary>Advanced options</summary>
+            <div class="advanced-body">
+              <div class="row">
+                <div class="field">
+                  <label for="hitWindow">Hit window (seconds)</label>
+                  <input type="number" id="hitWindow" name="hitWindowSec" value="8" min="1" max="60" step="1" />
+                </div>
+                <div class="field">
+                  <label for="actualWindow">Actual window (seconds)</label>
+                  <input type="number" id="actualWindow" name="actualWindowSec" value="60" min="10" max="300" step="5" />
+                </div>
               </div>
-              <div class="field">
-                <label for="actualWindow">Actual window (seconds)</label>
-                <input type="number" id="actualWindow" name="actualWindowSec" value="60" min="10" max="300" step="5" />
-              </div>
+              <label for="sampleOffsets">Health sample offsets (comma-separated seconds)</label>
+              <input type="text" id="sampleOffsets" name="sampleOffsets" value="-10,-5,0,5,10" />
             </div>
-            <label for="sampleOffsets">Health sample offsets (comma-separated seconds)</label>
-            <input type="text" id="sampleOffsets" name="sampleOffsets" value="-10,-5,0,5,10" />
+          </details>
+
+          <div class="form-actions">
+            <button type="submit" id="auditSubmitBtn">Generate Report</button>
+            <button type="button" class="btn-secondary" id="auditSaveBtn">Save inputs</button>
+            <button type="button" class="btn-secondary danger" id="auditClearSavedBtn">Clear saved</button>
+            <p class="save-status muted" id="auditSaveStatus"></p>
           </div>
-        </details>
+        </form>
 
-        <div class="form-actions">
-          <button type="submit" id="submitBtn">Generate Report</button>
-          <button type="button" class="btn-secondary" id="saveBtn">Save inputs</button>
-          <button type="button" class="btn-secondary danger" id="clearSavedBtn">Clear saved</button>
-          <p class="save-status muted" id="saveStatus"></p>
+        <div class="progress" id="auditProgress">
+          <span class="spinner"></span>
+          <span>Fetching WCL data, this may take 30–90 seconds…</span>
         </div>
-      </form>
 
-      <div class="progress" id="progress">
-        <span class="spinner"></span>
-        <span id="progressText">Fetching WCL data, this may take 30–90 seconds…</span>
+        <div class="result" id="auditResult">
+          <div class="result-label" id="auditResultLabel"></div>
+          <div class="result-link" id="auditResultLink"></div>
+          <div class="error-text" id="auditErrorText"></div>
+        </div>
       </div>
+    </div>
 
-      <div class="result" id="result">
-        <div class="result-label" id="resultLabel"></div>
-        <div class="result-link" id="resultLink"></div>
-        <div class="error-text" id="errorText"></div>
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Tab 2: Death Hotspots                                                -->
+    <!-- ------------------------------------------------------------------ -->
+    <div id="tab-hotspots" class="tab-panel">
+      <div class="card">
+        <form id="hotspotsForm">
+          <label for="hsReportUrl">Warcraft Logs Report URL</label>
+          <input
+            type="text"
+            id="hsReportUrl"
+            name="report"
+            placeholder="https://www.warcraftlogs.com/reports/XXXXXXXXXXXXXXXXXX"
+            required
+            autocomplete="off"
+            spellcheck="false"
+          />
+
+          <div class="row">
+            <div class="field">
+              <label for="hsEncounterID">Encounter ID (optional)</label>
+              <input
+                type="number"
+                id="hsEncounterID"
+                name="encounterID"
+                placeholder="Auto-detect"
+                min="1"
+              />
+              <p class="field-hint">Leave blank to use the most-common encounter in the report.</p>
+            </div>
+            <div class="field">
+              <label for="hsDifficulty">Difficulty (optional)</label>
+              <input
+                type="text"
+                id="hsDifficulty"
+                name="difficulty"
+                placeholder="Mythic"
+              />
+              <p class="field-hint">Mythic, Heroic, Normal, LFR, or numeric ID.</p>
+            </div>
+          </div>
+
+          <div class="checkbox-row">
+            <input type="checkbox" id="hsIncludeAudit" name="includeAudit" checked />
+            <label for="hsIncludeAudit">Include per-death defensive/pot audit table (adds 1–3 min for large reports)</label>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" id="hsSubmitBtn">Generate Report</button>
+            <button type="button" class="btn-secondary" id="hsSaveBtn">Save inputs</button>
+            <button type="button" class="btn-secondary danger" id="hsClearSavedBtn">Clear saved</button>
+            <p class="save-status muted" id="hsSaveStatus"></p>
+          </div>
+        </form>
+
+        <div class="progress" id="hsProgress">
+          <span class="spinner"></span>
+          <span id="hsProgressText">Fetching WCL data, this may take 1–3 minutes with the audit table…</span>
+        </div>
+
+        <div class="result" id="hsResult">
+          <div class="result-label" id="hsResultLabel"></div>
+          <div class="result-link" id="hsResultLink"></div>
+          <div class="error-text" id="hsErrorText"></div>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    const STORAGE_KEY = "cooldown-audit-form";
+    // -------------------------------------------------------------------------
+    // Tab switcher
+    // -------------------------------------------------------------------------
+    const tabBtns = document.querySelectorAll(".tab-btn");
+    const tabPanels = document.querySelectorAll(".tab-panel");
 
-    const form = document.getElementById("auditForm");
-    const submitBtn = document.getElementById("submitBtn");
-    const saveBtn = document.getElementById("saveBtn");
-    const clearSavedBtn = document.getElementById("clearSavedBtn");
-    const saveStatus = document.getElementById("saveStatus");
-    const progressEl = document.getElementById("progress");
-    const resultEl = document.getElementById("result");
-    const resultLabel = document.getElementById("resultLabel");
-    const resultLink = document.getElementById("resultLink");
-    const errorText = document.getElementById("errorText");
+    tabBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        tabBtns.forEach((b) => b.classList.remove("active"));
+        tabPanels.forEach((p) => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+      });
+    });
 
-    function readFormState() {
+    // -------------------------------------------------------------------------
+    // Shared helpers
+    // -------------------------------------------------------------------------
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function copyUrl(url) {
+      navigator.clipboard.writeText(url).catch(() => {});
+    }
+
+    function makeResultController(ids) {
+      const resultEl = document.getElementById(ids.result);
+      const resultLabel = document.getElementById(ids.resultLabel);
+      const resultLink = document.getElementById(ids.resultLink);
+      const errorText = document.getElementById(ids.errorText);
+
+      return {
+        showSuccess(url) {
+          resultEl.className = "result success";
+          resultLabel.textContent = "Report ready";
+          resultLink.innerHTML = `
+            <a href="${escHtml(url)}" target="_blank" rel="noopener">${escHtml(url)}</a>
+            <button class="copy-btn" onclick="copyUrl(${JSON.stringify(url)})">Copy</button>
+          `;
+          errorText.textContent = "";
+          resultEl.style.display = "block";
+          resultEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        },
+        showError(message) {
+          resultEl.className = "result error";
+          resultLabel.textContent = "Error";
+          resultLink.innerHTML = "";
+          errorText.textContent = message;
+          resultEl.style.display = "block";
+          resultEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        },
+        hide() {
+          resultEl.style.display = "none";
+        },
+      };
+    }
+
+    function makeSaveController(storageKey, ids) {
+      const saveStatus = document.getElementById(ids.saveStatus);
+      const saveBtn = document.getElementById(ids.saveBtn);
+      const clearBtn = document.getElementById(ids.clearBtn);
+
+      function showSaveStatus(text, muted = false, isError = false) {
+        saveStatus.textContent = text;
+        saveStatus.className = isError
+          ? "save-status error"
+          : muted
+            ? "save-status muted"
+            : "save-status";
+      }
+
+      saveBtn.addEventListener("click", () => {
+        try {
+          const state = { ...ids.readState(), savedAt: new Date().toISOString() };
+          localStorage.setItem(storageKey, JSON.stringify(state));
+          showSaveStatus("Saved to this browser.");
+        } catch (err) {
+          showSaveStatus(err.message ?? "Could not save.", false, true);
+        }
+      });
+
+      clearBtn.addEventListener("click", () => {
+        localStorage.removeItem(storageKey);
+        showSaveStatus("Saved inputs cleared.", true);
+      });
+
+      try {
+        const raw = localStorage.getItem(storageKey);
+        if (raw) {
+          const state = JSON.parse(raw);
+          ids.applyState(state);
+          const when = state.savedAt ? new Date(state.savedAt).toLocaleString() : "earlier";
+          showSaveStatus(`Restored inputs saved ${when}.`, true);
+        }
+      } catch {
+        showSaveStatus("Could not restore saved inputs.", false, true);
+      }
+
+      return {
+        save(message) {
+          try {
+            const state = { ...ids.readState(), savedAt: new Date().toISOString() };
+            localStorage.setItem(storageKey, JSON.stringify(state));
+            showSaveStatus(message ?? "Saved to this browser.");
+          } catch (err) {
+            showSaveStatus(err.message ?? "Could not save.", false, true);
+          }
+        },
+      };
+    }
+
+    // -------------------------------------------------------------------------
+    // Tab 1: Cooldown Audit
+    // -------------------------------------------------------------------------
+    const AUDIT_STORAGE_KEY = "cooldown-audit-form";
+
+    const auditSave = makeSaveController(AUDIT_STORAGE_KEY, {
+      saveStatus: "auditSaveStatus",
+      saveBtn: "auditSaveBtn",
+      clearBtn: "auditClearSavedBtn",
+      readState() {
+        return {
+          report: document.getElementById("reportUrl").value.trim(),
+          assignments: document.getElementById("assignments").value,
+          hitWindowSec: parseFloat(document.getElementById("hitWindow").value),
+          actualWindowSec: parseFloat(document.getElementById("actualWindow").value),
+          sampleOffsets: document.getElementById("sampleOffsets").value,
+        };
+      },
+      applyState(state) {
+        if (state.report) document.getElementById("reportUrl").value = state.report;
+        if (state.assignments) document.getElementById("assignments").value = state.assignments;
+        if (state.hitWindowSec != null && isFinite(state.hitWindowSec))
+          document.getElementById("hitWindow").value = state.hitWindowSec;
+        if (state.actualWindowSec != null && isFinite(state.actualWindowSec))
+          document.getElementById("actualWindow").value = state.actualWindowSec;
+        if (state.sampleOffsets)
+          document.getElementById("sampleOffsets").value = state.sampleOffsets;
+      },
+    });
+
+    const auditResult = makeResultController({
+      result: "auditResult",
+      resultLabel: "auditResultLabel",
+      resultLink: "auditResultLink",
+      errorText: "auditErrorText",
+    });
+
+    const auditSubmitBtn = document.getElementById("auditSubmitBtn");
+    const auditProgress = document.getElementById("auditProgress");
+
+    document.getElementById("auditForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      auditSubmitBtn.disabled = true;
+      auditProgress.style.display = "block";
+      auditResult.hide();
+
       const rawOffsets = document.getElementById("sampleOffsets").value;
       const sampleOffsets = rawOffsets
         .split(",")
         .map((v) => parseFloat(v.trim()))
         .filter((v) => isFinite(v));
-      return {
+
+      const body = {
         report: document.getElementById("reportUrl").value.trim(),
         assignments: document.getElementById("assignments").value,
         hitWindowSec: parseFloat(document.getElementById("hitWindow").value),
         actualWindowSec: parseFloat(document.getElementById("actualWindow").value),
-        sampleOffsets: rawOffsets,
-      };
-    }
-
-    function applyFormState(state) {
-      if (!state) return;
-      if (state.report) document.getElementById("reportUrl").value = state.report;
-      if (state.assignments) document.getElementById("assignments").value = state.assignments;
-      if (state.hitWindowSec != null && isFinite(state.hitWindowSec)) {
-        document.getElementById("hitWindow").value = state.hitWindowSec;
-      }
-      if (state.actualWindowSec != null && isFinite(state.actualWindowSec)) {
-        document.getElementById("actualWindow").value = state.actualWindowSec;
-      }
-      if (state.sampleOffsets) document.getElementById("sampleOffsets").value = state.sampleOffsets;
-    }
-
-    function saveFormState(message) {
-      try {
-        const state = { ...readFormState(), savedAt: new Date().toISOString() };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        showSaveStatus(message ?? "Saved to this browser.");
-      } catch (err) {
-        showSaveStatus(err.message ?? "Could not save.", false, true);
-      }
-    }
-
-    function loadFormState() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const state = JSON.parse(raw);
-        applyFormState(state);
-        const when = state.savedAt ? new Date(state.savedAt).toLocaleString() : "earlier";
-        showSaveStatus(`Restored inputs saved ${when}.`, true);
-      } catch {
-        showSaveStatus("Could not restore saved inputs.", false, true);
-      }
-    }
-
-    function clearFormState() {
-      localStorage.removeItem(STORAGE_KEY);
-      showSaveStatus("Saved inputs cleared.", true);
-    }
-
-    function showSaveStatus(text, muted = false, isError = false) {
-      saveStatus.textContent = text;
-      saveStatus.className = isError ? "save-status error" : muted ? "save-status muted" : "save-status";
-    }
-
-    saveBtn.addEventListener("click", () => saveFormState());
-    clearSavedBtn.addEventListener("click", clearFormState);
-    loadFormState();
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      submitBtn.disabled = true;
-      progressEl.style.display = "block";
-      resultEl.style.display = "none";
-
-      const state = readFormState();
-      const sampleOffsets = state.sampleOffsets
-        .split(",")
-        .map((v) => parseFloat(v.trim()))
-        .filter((v) => isFinite(v));
-
-      const body = {
-        report: state.report,
-        assignments: state.assignments,
-        hitWindowSec: state.hitWindowSec,
-        actualWindowSec: state.actualWindowSec,
         sampleOffsets,
       };
 
@@ -444,51 +658,93 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-
         const data = await resp.json();
-
         if (!resp.ok || data.error) {
-          showError(data.error ?? `HTTP ${resp.status}`);
+          auditResult.showError(data.error ?? `HTTP ${resp.status}`);
         } else {
-          saveFormState("Report generated — inputs saved to this browser.");
-          showSuccess(data.url);
+          auditSave.save("Report generated — inputs saved to this browser.");
+          auditResult.showSuccess(data.url);
         }
       } catch (err) {
-        showError(err.message ?? "Network error");
+        auditResult.showError(err.message ?? "Network error");
       } finally {
-        submitBtn.disabled = false;
-        progressEl.style.display = "none";
+        auditSubmitBtn.disabled = false;
+        auditProgress.style.display = "none";
       }
     });
 
-    function showSuccess(url) {
-      resultEl.className = "result success";
-      resultLabel.textContent = "Report ready";
-      resultLink.innerHTML = `
-        <a href="${escHtml(url)}" target="_blank" rel="noopener">${escHtml(url)}</a>
-        <button class="copy-btn" onclick="copyUrl(${JSON.stringify(url)})">Copy</button>
-      `;
-      errorText.textContent = "";
-      resultEl.style.display = "block";
-      resultEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
+    // -------------------------------------------------------------------------
+    // Tab 2: Death Hotspots
+    // -------------------------------------------------------------------------
+    const HOTSPOTS_STORAGE_KEY = "death-hotspots-form";
 
-    function showError(message) {
-      resultEl.className = "result error";
-      resultLabel.textContent = "Error";
-      resultLink.innerHTML = "";
-      errorText.textContent = message;
-      resultEl.style.display = "block";
-      resultEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
+    const hsSave = makeSaveController(HOTSPOTS_STORAGE_KEY, {
+      saveStatus: "hsSaveStatus",
+      saveBtn: "hsSaveBtn",
+      clearBtn: "hsClearSavedBtn",
+      readState() {
+        return {
+          report: document.getElementById("hsReportUrl").value.trim(),
+          encounterID: document.getElementById("hsEncounterID").value.trim(),
+          difficulty: document.getElementById("hsDifficulty").value.trim(),
+          includeAudit: document.getElementById("hsIncludeAudit").checked,
+        };
+      },
+      applyState(state) {
+        if (state.report) document.getElementById("hsReportUrl").value = state.report;
+        if (state.encounterID) document.getElementById("hsEncounterID").value = state.encounterID;
+        if (state.difficulty) document.getElementById("hsDifficulty").value = state.difficulty;
+        if (state.includeAudit != null)
+          document.getElementById("hsIncludeAudit").checked = state.includeAudit;
+      },
+    });
 
-    function copyUrl(url) {
-      navigator.clipboard.writeText(url).catch(() => {});
-    }
+    const hsResult = makeResultController({
+      result: "hsResult",
+      resultLabel: "hsResultLabel",
+      resultLink: "hsResultLink",
+      errorText: "hsErrorText",
+    });
 
-    function escHtml(str) {
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
+    const hsSubmitBtn = document.getElementById("hsSubmitBtn");
+    const hsProgress = document.getElementById("hsProgress");
+
+    document.getElementById("hotspotsForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hsSubmitBtn.disabled = true;
+      hsProgress.style.display = "block";
+      hsResult.hide();
+
+      const encounterIDRaw = document.getElementById("hsEncounterID").value.trim();
+      const difficultyRaw = document.getElementById("hsDifficulty").value.trim();
+
+      const body = {
+        report: document.getElementById("hsReportUrl").value.trim(),
+        ...(encounterIDRaw ? { encounterID: parseInt(encounterIDRaw, 10) } : {}),
+        ...(difficultyRaw ? { difficulty: difficultyRaw } : {}),
+        includeAudit: document.getElementById("hsIncludeAudit").checked,
+      };
+
+      try {
+        const resp = await fetch("/api/generate-hotspots", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.error) {
+          hsResult.showError(data.error ?? `HTTP ${resp.status}`);
+        } else {
+          hsSave.save("Report generated — inputs saved to this browser.");
+          hsResult.showSuccess(data.url);
+        }
+      } catch (err) {
+        hsResult.showError(err.message ?? "Network error");
+      } finally {
+        hsSubmitBtn.disabled = false;
+        hsProgress.style.display = "none";
+      }
+    });
   </script>
 </body>
 </html>
